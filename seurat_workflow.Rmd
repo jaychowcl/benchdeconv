@@ -8,6 +8,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#load("/localdisk/home/s2600569/project/after_cluster.RData")
 ```
 ## Importing libraries
 
@@ -22,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #BiocManager::install("DropletUtils")
 library(DropletUtils)
 
-devtools::install_github("saeyslab/synthspot")
+#devtools::install_github("saeyslab/synthspot")
 library(synthspot)
 #library(synthvisium)
 
@@ -43,7 +44,7 @@ library(patchwork)
 ################  Other libraries ################  
 
 ################  Set wd  ################  
-#setwd("/localdisk/home/s2600569/project")
+setwd("/localdisk/home/s2600569/project")
 getwd()
 
 ```
@@ -62,13 +63,12 @@ You can also embed plots, for example:
 ```{r import_datasets, echo=FALSE}
 
 ################  Import Datasets ################  
-# TODO: need to iterate over all files in data dir to import all, or just run each dataset once
 #indata_dir <- dir("data")
 # TODO: fit the iterate over a readmtx() and ftp to just use geo ascessions https://github.com/satijalab/seurat/issues/4096
 
 ### Grab file names ###
-data_dir <- dir("data/scRNA_wu") # TODO: make so iterates over every dir
-data_dir_mtx <- data_dir[grep("mtx", data_dir)]# TODO: somehow make it so it will rename into matrix.mtx.gz, features.tsv and barcodes.tsv.gz
+data_dir <- dir("data/scRNA_wu") 
+data_dir_mtx <- data_dir[grep("mtx", data_dir)]
 data_dir_feat <- data_dir[grep("meta", data_dir)]
 data_dir_cells <- data_dir[grep("barcode", data_dir)]
 
@@ -96,7 +96,7 @@ AddMetaData(in_data, meta)
 
 ```
 
-## Running Synthspot
+## Running Seurat 
 
 ```{r synthspot_preprocessing, echo=FALSE}
 #Tutorial: https://satijalab.org/seurat/articles/pbmc3k_tutorial
@@ -148,7 +148,7 @@ DimHeatmap(in_data_norm, dims = 1, cells = 500, balanced = TRUE)#1 PC
 DimHeatmap(in_data_norm, dims = 1:15, cells = 500, balanced = TRUE)#1-15 PC
 
 ### Determine Dimensionality  ###
-ElbowPlot(in_data_norm)
+ElbowPlot(in_data_norm, ndims=50)
 #We chose 10 here, but encourage users to consider the following: Dendritic cell and NK aficionados may recognize that genes strongly associated with PCs 12 and 13 define rare immune subsets (i.e. MZB1 is a marker for plasmacytoid DCs). However, these groups are so rare, they are difficult to distinguish from background noise for a dataset of this size without prior knowledge.
 #therefore choose 13
 #TODO: increase elbowplot range ie. increaes x axis to max (50)
@@ -170,15 +170,36 @@ in_data_norm.markers %>%
     group_by(cluster) %>%
     dplyr::filter(avg_log2FC > 1)
 ### Visualize Marker Expression ###
-FeaturePlot(in_data_norm, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", "FCGR3A", "LYZ", "PPBP",
-    "CD8A"))
+FeaturePlot(in_data_norm, features = head(rownames(in_data_norm.markers)))
+VlnPlot(in_data_norm, features = head(rownames(in_data_norm.markers)))
 
 in_data_norm.markers %>%
     group_by(cluster) %>%
     dplyr::filter(avg_log2FC > 1) %>%
     slice_head(n = 10) %>%
     ungroup() -> top10
+
+pdf("heatmap_genes.pdf")
 DoHeatmap(in_data_norm, features = top10$gene) + NoLegend()
+dev.off()
+
+################  Import Metadata Annotations and Assign Cluster Identities  ################
+
+DimPlot(in_data_norm, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+levels(in_data_norm)
+#AddMetaData(in_data, meta)
+
+# Create a data frame with cluster identities
+cluster_ids <- Idents(in_data_norm)
+
+# Create a table to map clusters to cell types
+cluster_to_celltype <- table(cluster_ids, meta$celltype_minor)
+
+# Determine the most frequent cell type for each cluster
+cluster_annotations <- apply(cluster_to_celltype, 1, function(x) names(which.max(x)))
+
+# Optionally, convert to a named vector for easier manipulation
+cluster_annotations <- setNames(cluster_annotations, rownames(cluster_to_celltype))
 
 ```
 
