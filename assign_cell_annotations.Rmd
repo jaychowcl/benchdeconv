@@ -9,6 +9,15 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r package_switch}
+
+detach("package:synthspot")
+remove.packages("synthspot")
+
+
+```
+
+
 # Importing libraries
 
 ```{r libraries}
@@ -16,14 +25,20 @@ knitr::opts_chunk$set(echo = TRUE)
 ################  Synthspot ################
 #install: https://github.com/saeyslab/synthspot
 
-#install.packages("devtools")
-# if (!require("BiocManager", quietly = TRUE))
-#     install.packages("BiocManager")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
 #BiocManager::install("DropletUtils")
 library(DropletUtils)
 
-#devtools::install_github("saeyslab/synthspot")
+#install.packages("devtools")
+library(devtools)
+install_local("../synthspot_devbuild_0.1", force = TRUE)
 library(synthspot)
+
+#devtools::install_github("saeyslab/synthspot")
+#devtools::install_github("jaychowcl/synthspot")
+#library(synthspot)
 #library(synthvisium)
 
 
@@ -39,6 +54,9 @@ library(dplyr)
 library(patchwork)
 
 
+################  Spatial libraries ################
+BiocManager::install("SpatialExperiment")
+library(SpatialExperiment)
 
 ################  Other libraries ################  
 
@@ -56,18 +74,22 @@ getwd()
 # TODO: fit the iterate over a readmtx() and ftp to just use geo ascessions https://github.com/satijalab/seurat/issues/4096
 
 ### Grab file names ###
-data_dir <- dir("data/scRNA_wu") 
-data_dir_mtx <- data_dir[grep("mtx", data_dir)]
-data_dir_feat <- data_dir[grep("meta", data_dir)]
-data_dir_cells <- data_dir[grep("barcode", data_dir)]
+# data_dir <- dir("data/scRNA_wu") 
+# data_dir_mtx <- data_dir[grep("mtx", data_dir)]
+# data_dir_feat <- data_dir[grep("meta", data_dir)]
+# data_dir_cells <- data_dir[grep("barcode", data_dir)]
 
 ### Into Seurat Obj ###
 in_data.data <- Read10X(data.dir = "~/project/data/scRNA_wu", gene.column=1) # TODO: need to also account for diff gene column. see https://github.com/satijalab/seurat/issues/1388
 in_data <- CreateSeuratObject(counts = in_data.data, project = "scRNA_humanbreastcancer", min.cells = 3, min.features = 200)# TODO: ask if need to alter min.cells and min.features
+#in_data <- CreateAssayObject(counts = in_data.data, project = "scRNA_humanbreastcancer", min.cells = 3, min.features = 200)
 
 ### Add Metadata  ###
 meta<- read.csv("data/scRNA_wu/metadata.csv") # TODO: need to also account for diff metadata file
+rownames(meta) <- colnames(in_data)
 AddMetaData(in_data, meta)
+
+in_data@meta.data$celltype_subset <- meta$celltype_subset
 
 ```
 
@@ -75,8 +97,26 @@ AddMetaData(in_data, meta)
 
 ```{r cluster_assignment, echo=FALSE}
 
+Idents(in_data) <- meta$celltype_subset
+head(Idents(in_data))
+
+```
+```{r run_synthspot, echo=FALSE}
+# #convert to v3 experiement
+# in_data_v3 <- in_data
+# in_data_v3[["RNA"]] <- as(object = in_data_v3[["RNA"]], Class = "Assay")
+
+synthetic_visium_data = generate_synthetic_visium(seurat_obj = in_data, 
+                                                  dataset_type = "artificial_uniform_distinct", 
+                                                  clust_var = "celltype_subset", 
+                                                  n_regions = 5, 
+                                                  n_spots_min = 5, 
+                                                  n_spots_max = 20, 
+                                                  visium_mean = 30000, 
+                                                  visium_sd = 8000)
+
+
 
 
 ```
-
 
