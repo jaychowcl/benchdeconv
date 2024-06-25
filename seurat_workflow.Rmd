@@ -58,7 +58,6 @@ getwd()
 
 ## Importing datasets
 
-You can also embed plots, for example:
 
 ```{r import_datasets, echo=FALSE}
 
