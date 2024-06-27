@@ -110,13 +110,50 @@ synthetic_visium_data = generate_synthetic_visium(seurat_obj = in_data,
                                                   dataset_type = "artificial_uniform_distinct", 
                                                   clust_var = "celltype_subset", 
                                                   n_regions = 5, 
-                                                  n_spots_min = 5, 
-                                                  n_spots_max = 20, 
+                                                  n_spots_min = 350, 
+                                                  n_spots_max = 351, 
                                                   visium_mean = 30000, 
                                                   visium_sd = 8000)
 
 
+```
+```{r assign_coords, echo=FALSE}
+
+region_coords <- read.csv("./data/spot_coords/regions_coords.csv")
+rownames(region_coords) <- region_coords$selected_spots.out1
+counts <- synthetic_visium_data$counts # extract counts from synthspot
+
+#assign coords to synthspot spots
+col_counts <- colnames(counts)
+col_regions <- as.vector(region_coords$selected_spots.out1)
+choose_counts <- col_counts %in% col_regions
+filtered_counts <- counts[, choose_counts] # final counts matrix
+
+
+#example(read10xVisium, echo = FALSE)
+
+```
+
+```{r build_spatial_obj, echo=FALSE}
+
+spatial_obj <- SpatialExperiment(assay=filtered_counts,
+                                 colData=region_coords,
+                                 spatialCoordsNames = c("X.Coordinate", "Y.Coordinate"))
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
