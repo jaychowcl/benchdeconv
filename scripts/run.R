@@ -1,5 +1,6 @@
+# install_local("../synthspot_devbuild_0.1", force = FALSE)
 source("./scripts/benchdeconv.R")
-install_local("../synthspot_devbuild_0.1", force = FALSE)
+
 
 #import data
 sc_seurat_meta <- import_data_meta(data.dir = "~/project/data/scRNA_wu", 
@@ -9,12 +10,14 @@ sc_seurat_meta <- import_data_meta(data.dir = "~/project/data/scRNA_wu",
                                        min.features = 200,
                                        meta.dir = "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv",
                                        grain_level = "celltype_major")
+print("Import done.")
 
 #split data for training and synthetic spot generation
 sc_seurat_meta_sce_split <- split_data(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
                                    meta = sc_seurat_meta$meta,
                                    proportion = 0.5,
                                    seed = 1)
+print("Split done.")
 
 #generate the synth spots
 synthetic_visium_data <- generate_synthetic_visium_multi(seurat_obj = sc_seurat_meta_sce_split$seurat_obj_synth,
@@ -25,20 +28,23 @@ synthetic_visium_data <- generate_synthetic_visium_multi(seurat_obj = sc_seurat_
                                                          visium_mean = 30000, 
                                                          visium_sd = 8000,
                                                          select_celltype = "random")
+print("Synthspot done.")
 
 #get region coords
 selected_coords <- get_region_coords(region_file = "./data/spot_coords/out1.csv",
                                      total_file = "./data/spot_coords/Spatial-Projection.csv",
                                      export_file = "./data/spot_coords/regions_coords.csv")
+print("Region coords done.")
 
 #build spatial obj with synth spots and region coords
 synth_spatialexp_counts <- assign_spotcoords_build_spatialexp(region_coords_file = "./data/spot_coords/regions_coords.csv",
                                                   synthetic_visium_data = synthetic_visium_data)
+print("Spatial obj creation done.")
 
 #convert spatialexp to seurat spatial
 spatial_obj_seurat <- spatialexp_to_seurat(spatial_obj = synth_spatialexp_counts$spatial_obj)
 ##SPATIAL PREPPED FOR DECONV
-
+print("Seurat st conversion done.")
 
 ##PREPPING TRAINING REFERENCE FOR DECONV
 #downsize sc for testing (overwrites current sc var)
@@ -48,6 +54,7 @@ downsized_sc <- downsize_seurat_sce(sc_obj_seurat = sc_seurat_meta_sce_split$seu
 sc_seurat_meta_sce_split$seurat_obj_train <- downsized_sc$seurat_obj
 sc_seurat_meta_sce_split$meta_train <- downsized_sc$meta
 sc_seurat_meta_sce_split$sce_obj_train <- downsized_sc$sce_obj
+print("DOWNSIZE FOR TESTING DONE. REMOVE IF NOT TESTING")
 
 # saveRDS(sce_downsize, file = "./data/rds/sce_downsize.rds")
 # saveRDS(spatial_obj, file = "./data/rds/spatial_obj.rds")
@@ -55,9 +62,6 @@ sc_seurat_meta_sce_split$sce_obj_train <- downsized_sc$sce_obj
 # saveRDS(region_coords, file = "./data/rds/spot_coords.RDS")
 # saveRDS(filtered_counts, file = "./data/rds/filtered_counts.RDS")
 # saveRDS(sc_obj_seurat, file = "./data/rds/sc_obj_seurat.rds")
-
-sce_obj_train 
-
 
 ##DECONVOLUTE
 deconv_rctd <- build_and_deconvolute(
@@ -115,6 +119,25 @@ for (method in methods){
   rmsd_all <- rbind(rmsd_all, rmsd_method)
   i <- i+1
 }
+write.csv(x = rmsd_all, file = "./data/results/rmsd.csv")
+print("RMSD done.")
+
+#get JSD
+i <- 1
+jsd_all <- list()
+for (method in methods){
+  method <- data.frame(method)
+  jsd_method <- getJSD(prediction_fracs = method,
+                       synthetic_visium_data = synthetic_visium_data,
+                       method_annot = method_names[i])
+  jsd_all$mean <- c(jsd_all$mean, jsd_method$mean)
+  jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
+  i <- i+1
+}
+write.csv(x = jsd_all, file = "./data/results/jsd.csv")
+print("JSD done.")
+
+
 
 ##VISUALIZE
 #plot spatial scatter pie plot
@@ -127,11 +150,16 @@ for (method in methods){
                            pie_scale = 0.4)
   i <- i+1
 }
-
+#plot ground truth
 plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                selected_coords = selected_coords,
                                outfile= "./data/results/truth_spatial_scatterpie.pdf",
                                scatterpie_alpha = 1,
                                pie_scale = 0.4)
+print("Spatial scatter pie done.")
+
+
+print("ALL DONE.")
+
 
 

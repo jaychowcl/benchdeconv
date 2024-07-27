@@ -9,6 +9,8 @@ library(spacedeconv)
 library(Matrix)
 library(ggplot2)
 library(SPOTlight)
+library(philentropy)
+
 
 
 # Read sc data
@@ -278,6 +280,38 @@ getRMSD <- function(prediction_fracs = deconv_rctd,
   method_annot <- rep(method_annot, length(colnames(true_fracs)))
   rmsd_table <- data.frame(method = method_annot, celltype = colnames(prediction_fracs), rmsd = rmsd)
   return(rmsd_table)
+}
+
+#calculate JSD
+getJSD <- function(prediction_fracs = deconv_rctd,
+                   synthetic_visium_data = synthetic_visium_data,
+                   method_annot = "deconv_tool"){
+  #get true fractions
+  true_fracs <- subset(synthetic_visium_data$relative_spot_composition, select = -region)
+  rownames(true_fracs) <- synthetic_visium_data$relative_spot_composition$name
+  #Choose only included spots
+  true_fracs <- subset(true_fracs, name %in% rownames(prediction_fracs), select = -name)
+  
+  #jsd calc function
+  calculate_jsd <- function(p, q) {
+  M <- 0.5 * sum((p + q))
+  jsd <- 0.5 * (sum(p * log(sum(p) / sum(M))) + sum(sum(q) * log(sum(q) / M)))
+  return(jsd)
+  }
+  
+  #get all jsd for each spot
+  jsd_all <- seq(1:dim(true_fracs)[2])
+  for (i in 1:dim(true_fracs)[2]){
+    jsd_i <- calculate_jsd(true_fracs[, i], prediction_fracs[, i])
+    jsd_all[i] <- jsd_i
+  }
+  
+  #gather all jsd and calc jsd mean
+  jsd_table <- data.frame(method = method_annot, spot = colnames(true_fracs), jsd = jsd_all)
+  jsd_mean <- mean(jsd_table$jsd)
+  
+  return(list(mean = jsd_mean,
+              jsd_table = jsd_table))
 }
 
 ##VISUALIZE
