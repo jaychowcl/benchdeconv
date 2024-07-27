@@ -307,7 +307,7 @@ getJSD <- function(prediction_fracs = deconv_rctd,
   }
   
   #gather all jsd and calc jsd mean
-  jsd_table <- data.frame(method = method_annot, spot = colnames(true_fracs), jsd = jsd_all)
+  jsd_table <- data.frame(method = method_annot, celltype = colnames(true_fracs), jsd = jsd_all)
   jsd_mean <- mean(jsd_table$jsd)
   
   return(list(mean = jsd_mean,

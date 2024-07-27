@@ -1,56 +1,22 @@
-#!/localdisk/home/s2600569/project/envs/benchdeconv_env/bin/R
-
-print("STARTING benchdeconv")
-#./scripts/run.R --scdata "~/project/data/scRNA_wu" --scmeta "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv" --outdir "./data/results"#
-
-#argparser args
-library(argparser)
-# Create a parser
-input_args <- arg_parser("benchdeconv: a benchmarking tool for spatial deconvolution methods.")
-# Add command line arguments
-input_args <- add_argument(input_args, "--scdata", help="Input single cell data directory. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations",
-                           type="character")
-input_args <- add_argument(input_args, "--scmeta", help="Metadata for cell annotations", 
-                           type="character")
-input_args <- add_argument(input_args, "--outdir", help="Output directory for results",
-                           type="character")
-# input_args <- add_argument(input_args, "--spotcoords", help-"Input file for selected spot coordinates",
-#                            type="character")
-# Parse the command line arguments
-argv <- parse_args(input_args)
-
-# Do work based on the passed arguments
-# cat( round(argv$number, argv$digits), "\n")
-
-
-
 # install_local("../synthspot_devbuild_0.1", force = FALSE)
 source("./scripts/benchdeconv.R")
-#create dirs
-if (!dir.exists("./data")){
-  dir.create("./data", showWarnings = TRUE, recursive = TRUE)
-}
-if (!dir.exists("./data/results")){
-  dir.create("./data/results", showWarnings = TRUE, recursive = TRUE)
-}
-
 
 
 #import data
-sc_seurat_meta <- import_data_meta(data.dir = argv$scdata, 
-                                       gene.column=1,
-                                       project = "scRNA_humanbreastcancer",
-                                       min.cells = 3,
-                                       min.features = 200,
-                                       meta.dir = argv$scmeta,
-                                       grain_level = "celltype_major")
+sc_seurat_meta <- import_data_meta(data.dir = "~/project/data/scRNA_wu", 
+                                   gene.column=1,
+                                   project = "scRNA_humanbreastcancer",
+                                   min.cells = 3,
+                                   min.features = 200,
+                                   meta.dir = "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv",
+                                   grain_level = "celltype_major")
 print("Import done.")
 
 #split data for training and synthetic spot generation
 sc_seurat_meta_sce_split <- split_data(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
-                                   meta = sc_seurat_meta$meta,
-                                   proportion = 0.5,
-                                   seed = 1)
+                                       meta = sc_seurat_meta$meta,
+                                       proportion = 0.5,
+                                       seed = 1)
 print("Split done.")
 
 #generate the synth spots
@@ -72,7 +38,7 @@ print("Region coords done.")
 
 #build spatial obj with synth spots and region coords
 synth_spatialexp_counts <- assign_spotcoords_build_spatialexp(region_coords_file = "./data/spot_coords/regions_coords.csv",
-                                                  synthetic_visium_data = synthetic_visium_data)
+                                                              synthetic_visium_data = synthetic_visium_data)
 print("Spatial obj creation done.")
 
 #convert spatialexp to seurat spatial
@@ -125,22 +91,22 @@ deconv_spotlight <-build_and_deconvolute(
 )
 deconv_spotlight <- true_celltype_colnames(deconv_spotlight)
 
-deconv_card <-build_and_deconvolute(
-  sc_seurat_meta_sce_split$sce_obj_train,
-  synth_spatialexp_counts$spatial_obj,
-  method = "card",
-  cell_type_col = "celltype_subset",
-  batch_id_col = "orig.ident",
-  assay_sc = "counts",
-  assay_sp = "counts",
-  return_object = FALSE,
-  verbose = TRUE
-)
-deconv_card <- true_celltype_colnames(deconv_card)
+# deconv_card <-build_and_deconvolute(
+#   sc_seurat_meta_sce_split$sce_obj_train,
+#   synth_spatialexp_counts$spatial_obj,
+#   method = "card",
+#   cell_type_col = "celltype_subset",
+#   batch_id_col = "orig.ident",
+#   assay_sc = "counts",
+#   assay_sp = "counts",
+#   return_object = FALSE,
+#   verbose = TRUE
+# )
+# deconv_card <- true_celltype_colnames(deconv_card)
 
 ##GENERATE STATS
-method_names <- c("rctd", "spotlight", "card")
-methods <- list(deconv_rctd, deconv_spotlight, deconv_card)
+method_names <- c("rctd", "spotlight")
+methods <- list(deconv_rctd, deconv_spotlight)
 
 #get rmsd
 rmsd_all <- data.frame()
@@ -148,29 +114,16 @@ i <- 1
 for (method in methods){
   method = data.frame(method)
   rmsd_method <- getRMSD(prediction_fracs = method,
-                  synthetic_visium_data = synthetic_visium_data,
-                  method_annot = method_names[i])
+                         synthetic_visium_data = synthetic_visium_data,
+                         method_annot = method_names[i])
   rmsd_all <- rbind(rmsd_all, rmsd_method)
   i <- i+1
 }
-write.csv(x = rmsd_all, file = "./data/results/rmsd.csv")
+write.csv(x = rmsd_all,
+          file = "./data/results/rmsd.csv")
 print("RMSD done.")
 
 #get JSD
-i <- 1
-jsd_all <- list()
-for (method in methods){
-  method <- data.frame(method)
-  jsd_method <- getJSD(prediction_fracs = method,
-                       synthetic_visium_data = synthetic_visium_data,
-                       method_annot = method_names[i])
-  jsd_all$mean <- c(jsd_all$mean, jsd_method$mean)
-  jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
-  i <- i+1
-}
-write.csv(x = jsd_all, file = "./data/results/jsd.csv")
-print("JSD done.")
-
 
 
 ##VISUALIZE
@@ -179,7 +132,7 @@ i <- 1
 for (method in methods){
   plot_spatial_scatter_pie(prediction_fracs = method,
                            selected_coords = selected_coords,
-                           outfile= paste0( argv$outdir, method_names[i], "_spatial_scatterpie.pdf"),
+                           outfile= paste0( "./data/results/", method_names[i], "_spatial_scatterpie.pdf"),
                            scatterpie_alpha = 1,
                            pie_scale = 0.4)
   i <- i+1
@@ -187,13 +140,11 @@ for (method in methods){
 #plot ground truth
 plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                selected_coords = selected_coords,
-                               outfile= paste0(arv$outdir, "/truth_spatial_scatterpie.pdf"),
+                               outfile= "./data/results/truth_spatial_scatterpie.pdf",
                                scatterpie_alpha = 1,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
 
 
 print("ALL DONE.")
-
-
 
