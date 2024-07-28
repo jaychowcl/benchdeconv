@@ -1,6 +1,6 @@
 #!/localdisk/home/s2600569/project/envs/benchdeconv_env/bin/R
 
-print("STARTING benchdeconv")
+print("STARTING benchdeconv...")
 #./scripts/run.R --scdata "~/project/data/scRNA_wu" --scmeta "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv" --outdir "./data/results"#
 
 #argparser args
