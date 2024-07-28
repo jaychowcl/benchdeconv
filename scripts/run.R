@@ -1,7 +1,8 @@
 #!/localdisk/home/s2600569/project/envs/benchdeconv_env/bin/R
 
-print("STARTING benchdeconv...")
-#./scripts/run.R --scdata "~/project/data/scRNA_wu" --scmeta "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv" --outdir "./data/results"#
+
+print("STARTING benchdeconv")
+#./scripts/run.R --scdata "~/project/data/scRNA_wu" --scmeta "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv" --outdir "./data/results"
 
 #argparser args
 library(argparser)
@@ -9,11 +10,21 @@ library(argparser)
 input_args <- arg_parser("benchdeconv: a benchmarking tool for spatial deconvolution methods.")
 # Add command line arguments
 input_args <- add_argument(input_args, "--scdata", help="Input single cell data directory. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations",
-                           type="character")
+                           type="character",
+                           default = "~/project/data/scRNA_wu")
+
 input_args <- add_argument(input_args, "--scmeta", help="Metadata for cell annotations", 
-                           type="character")
+                           type="character",
+                           default = "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv")
+
 input_args <- add_argument(input_args, "--outdir", help="Output directory for results",
-                           type="character")
+                           type="character",
+                           default = "./data/results")
+
+input_args <- add_argument(input_args, "--seed", help="Setting seed for random sampling",
+                           type = "numeric",
+                           default = 1)
+
 # input_args <- add_argument(input_args, "--spotcoords", help-"Input file for selected spot coordinates",
 #                            type="character")
 # Parse the command line arguments
@@ -22,7 +33,7 @@ argv <- parse_args(input_args)
 # Do work based on the passed arguments
 # cat( round(argv$number, argv$digits), "\n")
 
-
+set.seed(argv.seed) # SET SEED FOR REPRODUCIB
 
 # install_local("../synthspot_devbuild_0.1", force = FALSE)
 source("./scripts/benchdeconv.R")
@@ -49,8 +60,7 @@ print("Import done.")
 #split data for training and synthetic spot generation
 sc_seurat_meta_sce_split <- split_data(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
                                    meta = sc_seurat_meta$meta,
-                                   proportion = 0.5,
-                                   seed = 1)
+                                   proportion = 0.5)
 print("Split done.")
 
 #generate the synth spots
