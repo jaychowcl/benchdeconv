@@ -1,4 +1,4 @@
-name: benchdeconv_env
+name: benchdeconv_env_test
 channels:
   - anaconda
   - bioconda
