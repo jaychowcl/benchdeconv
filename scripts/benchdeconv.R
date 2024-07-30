@@ -367,3 +367,15 @@ plot_spatial_scatter_pie_truth <- function(synthetic_visium_data = synthetic_vis
   print(spatialscatter)
   dev.off()
 }
+
+#gather rmsd and jsd stats 
+
+outdir <- "data/results/all_runs/run_1"
+gather_and_append_all_stats <- function(outdir = argv$outdir,
+                                        finalfile = paste0(argv$outdir, "jsd_rmsd_all.csv")){
+  infile_jsd <- read.csv(paste0(outdir, "jsd.csv"))
+  infile_rmsd <- read.csv(paste0(outdir,"rmsd.csv"))
+  
+  
+  
+}

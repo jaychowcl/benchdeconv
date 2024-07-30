@@ -249,6 +249,8 @@ plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
 
+#
+
 
 print("------SHUTTING DOWN benchdeconv------")
 
