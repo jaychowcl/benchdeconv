@@ -22,6 +22,8 @@ BiocManager::install("DropletUtils")
 BiocManager::install("SpatialExperiment")
 BiocManager::install("SingleCellExperiment")
 
+devtools::install_github('jaychowcl/synthspot')
+
 
 install.packages("pak")
 pak::pkg_install("omnideconv/spacedeconv", dependencies=TRUE)
