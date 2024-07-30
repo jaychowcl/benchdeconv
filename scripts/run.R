@@ -1,4 +1,5 @@
-#!/localdisk/home/s2600569/project/envs/benchdeconv_env/bin/R
+#!/exports/eddie/scratch/s2600569/envs/new_conda/bin/R
+
 # ./scripts/run.R --scdata "data/scRNA_wu" \
 # --scmeta "data/scRNA_wu/metadata.csv" \
 # --outdir "data/results" \
@@ -10,6 +11,7 @@
 # 
 
 print("------STARTING benchdeconv------")
+print(getwd())
 
 
 #argparser args
@@ -68,12 +70,12 @@ print("Source done.")
 
 #create dirs
 print("---Creating dirs---")
-if (!dir.exists("./data")){
-  dir.create("./data", showWarnings = TRUE, recursive = TRUE)
-}
-if (!dir.exists("./data/results")){
-  dir.create("./data/results", showWarnings = TRUE, recursive = TRUE)
-}
+#if (!dir.exists("./data")){
+#  dir.create("./data", showWarnings = TRUE, recursive = TRUE)
+#}
+#if (!dir.exists("./data/results")){
+#  dir.create("./data/results", showWarnings = TRUE, recursive = TRUE)
+#}
 if (!dir.exists(argv$outdir)){
   dir.create(argv$outdir, showWarnings = TRUE, recursive = TRUE)
 }
