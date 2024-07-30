@@ -113,6 +113,7 @@ print("---Splitting data---")
 sc_seurat_meta_sce_split <- split_data(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
                                    meta = sc_seurat_meta$meta,
                                    proportion = 0.5)
+
 print("Data split done.")
 
 #generate the synth spots
