@@ -14,7 +14,7 @@ library(philentropy)
 
 
 # Read sc data
-import_data_meta <- function(data.dir = "~/project/data/scRNA_wu", 
+import_data_meta <- function(data.dir = "data/scRNA_wu", 
                              gene.column=1,
                              project = "scRNA_humanbreastcancer",
                              min.cells = 3,
