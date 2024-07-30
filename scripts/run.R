@@ -1,5 +1,20 @@
 #!/exports/eddie/scratch/s2600569/envs/new_conda/bin/R
 
+=======
+
+# source('./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir "data/results" --seed 1 --test 1 --grain-lvl "celltype_major" --gene-column 1 --synth-dataset "artificial_regional_rare_celltype_diverse"')
+# 
+# argv <- list(scdata = "data/scRNA_wu",
+#              scmeta = "data/scRNA_wu/metadata.csv",
+#              outdir = "data/results",
+#              seed = 1,
+#              test = 1,
+#              grain_lvl = "celltype_major",
+#              gene_column = 1,
+#              synth_dataset = "artificial_regional_rare_celltype_diverse")
+# 
+
+
 # ./scripts/run.R --scdata "data/scRNA_wu" \
 # --scmeta "data/scRNA_wu/metadata.csv" \
 # --outdir "data/results" \
@@ -8,7 +23,7 @@
 # --grain-lvl "celltype_major" \
 # --gene-column 1 \
 # --synth-dataset "artificial_regional_rare_celltype_diverse"
-# 
+# # 
 
 print("------STARTING benchdeconv------")
 print(getwd())
@@ -91,7 +106,7 @@ sc_seurat_meta <- import_data_meta(data.dir = argv$scdata,
                                        min.cells = 3,
                                        min.features = 200,
                                        meta.dir = argv$scmeta,
-                                       grain_level = argv$grain-level)
+                                       grain_level = argv$grain-lvl)
 print("Import done.")
 
 #split data for training and synthetic spot generation
