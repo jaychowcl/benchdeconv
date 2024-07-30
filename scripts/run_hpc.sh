@@ -16,7 +16,7 @@ conda activate new_conda
 
 Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" \
 --scmeta "data/scRNA_wu/metadata.csv" \
---outdir /exports/eddie3_homes_local/s2600569/benchdeconv/data/results/run_${SGE_TASK_ID} \
+--outdir /exports/eddie3_homes_local/s2600569/benchdeconv/data/results/all_runs/run_${SGE_TASK_ID} \
 --seed ${SGE_TASK_ID} \
 --test 1 \
 --grain_lvl "celltype_major" \
