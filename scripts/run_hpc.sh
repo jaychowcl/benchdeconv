@@ -4,10 +4,10 @@
 #$ -l h_vmem=16G
 #$ -l rl9=true
 #$ -pe sharedmem 8
-#$ -t 1-2
+#$ -t 1-10
 #$ -N ArrayJob
-#$ -o output.txt
-#$ -e errors.txt
+#$ -o ./log/output_${SGE_TASK_ID}.txt
+#$ -e ./log/errors_${SGE_TASK_ID}.txt
 
 #scripthere
 . /etc/profile.d/modules.sh

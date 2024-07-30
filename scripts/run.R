@@ -1,29 +1,5 @@
 #!/exports/eddie/scratch/s2600569/envs/new_conda/bin/R
 
-
-# source('./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir "data/results" --seed 1 --test 1 --grain_lvl "celltype_major" --gene_column 1 --synth_dataset "artificial_regional_rare_celltype_diverse"')
-# 
-# argv <- list(scdata = "data/scRNA_wu",
-#              scmeta = "data/scRNA_wu/metadata.csv",
-#              outdir = "data/results",
-#              seed = 1,
-#              test = 1,
-#              grain_lvl = "celltype_major",
-#              gene_column = 1,
-#              synth_dataset = "artificial_regional_rare_celltype_diverse")
-# 
-
-
-# ./scripts/run.R --scdata "data/scRNA_wu" \
-# --scmeta "data/scRNA_wu/metadata.csv" \
-# --outdir "data/results" \
-# --seed 1 \
-# --test 1 \
-# --grain_lvl "celltype_major" \
-# --gene_column 1 \
-# --synth_dataset "artificial_regional_rare_celltype_diverse"
-# # 
-
 print("------STARTING benchdeconv------")
 print(getwd())
 
@@ -66,6 +42,10 @@ input_args <- add_argument(input_args, "--gene_column", help="Gene column in inp
 input_args <- add_argument(input_args, "--synth_dataset", help="Dataset setting for synthspots",
                            type = "character",
                            default = "artificial_regional_rare_celltype_diverse")
+
+input_args <- add_argument(input_args, "--select_celltype", help="select_celltype option in synthspots",
+                           type = "character",
+                           default = "T-cells")
 
 # Parse the command line arguments
 argv <- parse_args(input_args)
