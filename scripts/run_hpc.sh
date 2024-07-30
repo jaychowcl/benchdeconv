@@ -7,6 +7,8 @@
 
 
 #scripthere
+conda activate new_conda
+
 ./scripts/run.R --scdata "data/scRNA_wu" \
 --scmeta "data/scRNA_wu/metadata.csv" \
 --outdir /data/results/run_${SGE_TASK_ID} \
