@@ -1,16 +1,16 @@
 #!/exports/eddie/scratch/s2600569/envs/new_conda/bin/R
 
 
-# source('./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir "data/results" --seed 1 --test 1 --grain-lvl "celltype_major" --gene-column 1 --synth-dataset "artificial_regional_rare_celltype_diverse"')
+# source('./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir "data/results" --seed 1 --test 1 --grain_lvl "celltype_major" --gene_column 1 --synth_dataset "artificial_regional_rare_celltype_diverse"')
 # 
 # argv <- list(scdata = "data/scRNA_wu",
 #              scmeta = "data/scRNA_wu/metadata.csv",
 #              outdir = "data/results",
 #              seed = 1,
 #              test = 1,
-#              "grain-lvl" = "celltype_major",
-#              "gene-column" = 1,
-#              "synth-dataset" = "artificial_regional_rare_celltype_diverse")
+#              grain_lvl = "celltype_major",
+#              gene_column = 1,
+#              synth_dataset = "artificial_regional_rare_celltype_diverse")
 # 
 
 
@@ -19,9 +19,9 @@
 # --outdir "data/results" \
 # --seed 1 \
 # --test 1 \
-# --grain-lvl "celltype_major" \
-# --gene-column 1 \
-# --synth-dataset "artificial_regional_rare_celltype_diverse"
+# --grain_lvl "celltype_major" \
+# --gene_column 1 \
+# --synth_dataset "artificial_regional_rare_celltype_diverse"
 # # 
 
 print("------STARTING benchdeconv------")
@@ -55,15 +55,15 @@ input_args <- add_argument(input_args, "--test", help = "Flag for running with r
                            type = "numeric",
                            default = 0)
 
-input_args <- add_argument(input_args, "--grain-lvl", help="Column used for celltype annotations",
+input_args <- add_argument(input_args, "--grain_lvl", help="Column used for celltype annotations",
                            type = "character",
                            default = "celltype_major")
 
-input_args <- add_argument(input_args, "--gene-column", help="Gene column in input scRNA data",
+input_args <- add_argument(input_args, "--gene_column", help="Gene column in input scRNA data",
                            type = "numeric",
                            default = 1)
 
-input_args <- add_argument(input_args, "--synth-dataset", help="Dataset setting for synthspots",
+input_args <- add_argument(input_args, "--synth_dataset", help="Dataset setting for synthspots",
                            type = "character",
                            default = "artificial_regional_rare_celltype_diverse")
 
@@ -100,12 +100,12 @@ print("Dir creation done.")
 #import data
 print("---Importing data---")
 sc_seurat_meta <- import_data_meta(data.dir = argv$scdata, 
-                                       gene.column= argv$gene-column,
+                                       gene.column= argv$gene_column,
                                        project = "scRNA_humanbreastcancer",
                                        min.cells = 3,
                                        min.features = 200,
                                        meta.dir = argv$scmeta,
-                                       grain_level = argv$grain-lvl)
+                                       grain_level = argv$grain_lvl)
 print("Import done.")
 
 #split data for training and synthetic spot generation
@@ -118,7 +118,7 @@ print("Data split done.")
 #generate the synth spots
 print("---Generating synthetic spots---")
 synthetic_visium_data <- generate_synthetic_visium_multi(seurat_obj = sc_seurat_meta_sce_split$seurat_obj_synth,
-                                                         dataset_type = argv$synth-dataset, 
+                                                         dataset_type = argv$synth_dataset, 
                                                          clust_var = "celltype_subset", 
                                                          n_regions = 5, 
                                                          max_n_region_spots = 175,
