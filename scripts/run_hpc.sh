@@ -18,7 +18,7 @@ Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" \
 --scmeta "data/scRNA_wu/metadata.csv" \
 --outdir /exports/eddie3_homes_local/s2600569/benchdeconv/data/results/all_runs/run_${SGE_TASK_ID} \
 --seed ${SGE_TASK_ID} \
---test 1 \
+--test 0 \
 --grain_lvl "celltype_major" \
 --gene_column 1 \
 --synth_dataset "artificial_regional_rare_celltype_diverse"

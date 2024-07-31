@@ -244,7 +244,7 @@ for (method in methods){
 #plot ground truth
 plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                selected_coords = selected_coords,
-                               outfile= paste0(arv$outdir, "/truth_spatial_scatterpie.pdf"),
+                               outfile= paste0(argv$outdir, "/truth_spatial_scatterpie.pdf"),
                                scatterpie_alpha = 1,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
