@@ -29,7 +29,7 @@ input_args <- add_argument(input_args, "--seed", help="Setting seed for random s
 
 input_args <- add_argument(input_args, "--test", help = "Flag for running with reduced dataset. FOR TESTING ONLY. (0) off ,(1) on",
                            type = "numeric",
-                           default = 0)
+                           default = 1)
 
 input_args <- add_argument(input_args, "--grain_lvl", help="Column used for celltype annotations",
                            type = "character",
