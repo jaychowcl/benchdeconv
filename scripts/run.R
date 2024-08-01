@@ -1,12 +1,23 @@
-#!/exports/eddie/scratch/s2600569/envs/new_conda/bin/R
+# Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir ./data/results/test/run_1 --seed 0 --downsize 500 --grain_lvl "celltype_major" --gene_column 1 --synth_dataset "artificial_regional_rare_celltype_diverse" --select_celltype "T-cells"
+# argv$scdata <- "data/scRNA_wu"
+# argv$scmeta <- "data/scRNA_wu/metadata.csv"
+# argv$outdir <- "./data/results/test/run_1"
+# argv$seed <- 0
+# argv$downsize <- 500
+# argv$grain_lvl <- "celltype_major"
+# argv$gene_column <- 1
+# argv$synth_dataset <- "artificial_regional_rare_celltype_diverse"
+# argv$select_celltype <- "T-cells"
+
+
+library(argparser)
 
 print("------STARTING benchdeconv------")
 print(getwd())
 
-
 #argparser args
 print("---Parsing input args---")
-library(argparser)
+
 # Create a parser
 input_args <- arg_parser("benchdeconv: a benchmarking tool for spatial deconvolution methods.")
 
@@ -27,9 +38,9 @@ input_args <- add_argument(input_args, "--seed", help="Setting seed for random s
                            type = "numeric",
                            default = 1)
 
-input_args <- add_argument(input_args, "--test", help = "Flag for running with reduced dataset. FOR TESTING ONLY. (0) off ,(1) on",
+input_args <- add_argument(input_args, "--downsize", help = "No. of cells to downsize scRNA reference to. (0 for full dataset).",
                            type = "numeric",
-                           default = 1)
+                           default = 0)
 
 input_args <- add_argument(input_args, "--grain_lvl", help="Column used for celltype annotations",
                            type = "character",
@@ -47,7 +58,6 @@ input_args <- add_argument(input_args, "--select_celltype", help="select_celltyp
                            type = "character",
                            default = "T-cells")
 
-# Parse the command line arguments
 argv <- parse_args(input_args)
 print("Parsing done.")
 
@@ -70,9 +80,10 @@ print("---Creating dirs---")
 #if (!dir.exists("./data/results")){
 #  dir.create("./data/results", showWarnings = TRUE, recursive = TRUE)
 #}
-if (!dir.exists(argv$outdir)){
-  dir.create(argv$outdir, showWarnings = TRUE, recursive = TRUE)
+if (!dir.exists(dirname(argv$outdir))){
+  dir.create(dirname(argv$outdir), showWarnings = TRUE, recursive = TRUE)
 }
+
 print("Dir creation done.")
 
 
@@ -128,18 +139,17 @@ spatial_obj_seurat <- spatialexp_to_seurat(spatial_obj = synth_spatialexp_counts
 print("st data conversion done.")
 
 
-if (argv$test == 1){
+if (argv$downsize >0){
 
-##DOWNSIZING FOR TESTING
-#downsize sc for testing (overwrites current sc var)
-print("---DOWNSIZING. REMOVE BEFORE PROD.---")
-downsized_sc <- downsize_seurat_sce(sc_obj_seurat = sc_seurat_meta_sce_split$seurat_obj_train,
-                                    meta = sc_seurat_meta_sce_split$meta_train,
-                                    downsample = 500)
-sc_seurat_meta_sce_split$seurat_obj_train <- downsized_sc$seurat_obj
-sc_seurat_meta_sce_split$meta_train <- downsized_sc$meta
-sc_seurat_meta_sce_split$sce_obj_train <- downsized_sc$sce_obj
-print("DOWNSIZE FOR TESTING DONE. REMOVE IF NOT TESTING")
+  #downsize sc (overwrites current sc var)
+  print("---Downsizing---")
+  downsized_sc <- downsize_seurat_sce(sc_obj_seurat = sc_seurat_meta_sce_split$seurat_obj_train,
+                                      meta = sc_seurat_meta_sce_split$meta_train,
+                                      downsample = argv$downsize)
+  sc_seurat_meta_sce_split$seurat_obj_train <- downsized_sc$seurat_obj
+  sc_seurat_meta_sce_split$meta_train <- downsized_sc$meta
+  sc_seurat_meta_sce_split$sce_obj_train <- downsized_sc$sce_obj
+  print("DOWNSIZE FOR TESTING DONE. REMOVE IF NOT TESTING")
 } 
 
 # saveRDS(sce_downsize, file = "./data/rds/sce_downsize.rds")
@@ -150,7 +160,9 @@ print("DOWNSIZE FOR TESTING DONE. REMOVE IF NOT TESTING")
 # saveRDS(sc_obj_seurat, file = "./data/rds/sc_obj_seurat.rds")
 
 ##DECONVOLUTE
+#also measure runtimes
 print("---Deconvoluting---")
+rctd_time_1 <- Sys.time()
 deconv_rctd <- build_and_deconvolute(
   sc_seurat_meta_sce_split$sce_obj_train,
   synth_spatialexp_counts$spatial_obj,
@@ -163,8 +175,10 @@ deconv_rctd <- build_and_deconvolute(
   verbose = TRUE,
   n_cores = 8
 )
+rctd_time_2 <- Sys.time()
 deconv_rctd <- true_celltype_colnames(deconv_rctd)
 
+spotlight_time_1 <- Sys.time()
 deconv_spotlight <-build_and_deconvolute(
   sc_seurat_meta_sce_split$sce_obj_train,
   synth_spatialexp_counts$spatial_obj,
@@ -176,8 +190,10 @@ deconv_spotlight <-build_and_deconvolute(
   return_object = FALSE,
   verbose = TRUE
 )
+spotlight_time_2 <- Sys.time()
 deconv_spotlight <- true_celltype_colnames(deconv_spotlight)
 
+card_time_1 <- Sys.time()
 deconv_card <-build_and_deconvolute(
   sc_seurat_meta_sce_split$sce_obj_train,
   synth_spatialexp_counts$spatial_obj,
@@ -189,6 +205,7 @@ deconv_card <-build_and_deconvolute(
   return_object = FALSE,
   verbose = TRUE
 )
+card_time_2 <- Sys.time()
 deconv_card <- true_celltype_colnames(deconv_card)
 
 print("Deconvolution done.")
@@ -197,6 +214,14 @@ print("Deconvolution done.")
 print("---Generating stats---")
 method_names <- c("rctd", "spotlight", "card")
 methods <- list(deconv_rctd, deconv_spotlight, deconv_card)
+
+#get runtimes
+runtime_vector <- c(rctd_time_2 - rctd_time_1,
+                    spotlight_time_2 - spotlight_time_1,
+                    card_time_2 - card_time_1)
+runtimes <- data.frame(method = method_names,
+                       runtimes = runtime_vector)
+write.csv(runtimes, file = paste0(argv$outdir, "_runtimes.csv"))
 
 #get rmsd
 rmsd_all <- data.frame()
@@ -224,7 +249,7 @@ for (method in methods){
   jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
   i <- i+1
 }
-write.csv(x = jsd_all, file = paste0(argv$outdir, "jsd.csv"))
+write.csv(x = jsd_all$jsd_table, file = paste0(argv$outdir, "jsd.csv"))
 print("JSD done.")
 
 
@@ -236,7 +261,7 @@ i <- 1
 for (method in methods){
   plot_spatial_scatter_pie(prediction_fracs = method,
                            selected_coords = selected_coords,
-                           outfile= paste0( argv$outdir, "spatial_scatterpie_", method_names[i], ".pdf" ),
+                           outfile= paste0( argv$outdir, "_spatial_scatterpie_", method_names[i], ".pdf" ),
                            scatterpie_alpha = 1,
                            pie_scale = 0.4)
   i <- i+1
@@ -244,7 +269,7 @@ for (method in methods){
 #plot ground truth
 plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                selected_coords = selected_coords,
-                               outfile= paste0(argv$outdir, "/truth_spatial_scatterpie.pdf"),
+                               outfile= paste0(argv$outdir, "_truth_spatial_scatterpie.pdf"),
                                scatterpie_alpha = 1,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
@@ -253,5 +278,4 @@ print("Spatial scatter pie done.")
 
 
 print("------SHUTTING DOWN benchdeconv------")
-
 

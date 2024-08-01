@@ -43,4 +43,4 @@ install.packages('FactoMineR')# spatialdwls
 BiocManager::install("SpatialDecon")# spatialdecon
 
 install.packages("philentropy")#jsd stats 
-
+install.packages("dunn.test")#dunn test stats
