@@ -1,6 +1,6 @@
 #$ -cwd -V
 #$ -N benchdeconv
-#$ -l h_rt=12:00:00
+#$ -l h_rt=48:00:00
 #$ -l h_vmem=32G
 #$ -l rl9=true
 #$ -pe sharedmem 8
