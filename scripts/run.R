@@ -1,4 +1,5 @@
 # Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir ./data/results/test/run_1 --seed 0 --downsize 500 --grain_lvl "celltype_major" --gene_column 1 --synth_dataset "artificial_regional_rare_celltype_diverse" --select_celltype "T-cells"
+# argv <- list()
 # argv$scdata <- "data/scRNA_wu"
 # argv$scmeta <- "data/scRNA_wu/metadata.csv"
 # argv$outdir <- "./data/results/test/run_1"
@@ -8,7 +9,7 @@
 # argv$gene_column <- 1
 # argv$synth_dataset <- "artificial_regional_rare_celltype_diverse"
 # argv$select_celltype <- "T-cells"
-
+start_time <- Sys.time()
 
 library(argparser)
 
@@ -59,6 +60,8 @@ input_args <- add_argument(input_args, "--select_celltype", help="select_celltyp
                            default = "T-cells")
 
 argv <- parse_args(input_args)
+print("Settings:")
+print(argv)
 print("Parsing done.")
 
 # Set seed for reproducibility
@@ -215,14 +218,6 @@ print("---Generating stats---")
 method_names <- c("rctd", "spotlight", "card")
 methods <- list(deconv_rctd, deconv_spotlight, deconv_card)
 
-#get runtimes
-runtime_vector <- c(rctd_time_2 - rctd_time_1,
-                    spotlight_time_2 - spotlight_time_1,
-                    card_time_2 - card_time_1)
-runtimes <- data.frame(method = method_names,
-                       runtimes = runtime_vector)
-write.csv(runtimes, file = paste0(argv$outdir, "_runtimes.csv"))
-
 #get rmsd
 rmsd_all <- data.frame()
 i <- 1
@@ -274,8 +269,18 @@ plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
 
-#
+#final runtime
+end_time <- Sys.time()
+#get runtimes
+runtime_vector <- c(end_time - start_time,
+                    rctd_time_2 - rctd_time_1,
+                    spotlight_time_2 - spotlight_time_1,
+                    card_time_2 - card_time_1)
+runtimes <- data.frame(method = c("benchdeconv", method_names),
+                       runtimes = runtime_vector)
+write.csv(runtimes, file = paste0(argv$outdir, "_runtimes.csv"))
 
 
 print("------SHUTTING DOWN benchdeconv------")
+
 
