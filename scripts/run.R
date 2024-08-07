@@ -312,6 +312,21 @@ plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                pie_scale = 0.4)
 print("Spatial scatter pie done.")
 
+#error heatmaps
+#overall error heatmap
+
+spatial_deconvolution_error_plot(synthetic_visium_data = synthetic_visium_data,
+                                 predicted = deconv_rctd,
+                                 coordinates = selected_coords)
+
+
+#per celltype error heatmaps
+pdf("errortest_per.pdf")
+spatial_deconvolution_error_heatmap(synthetic_visium_data = synthetic_visium_data,
+                                    predicted = deconv_rctd,
+                                    coordinates = selected_coords)
+dev.off()
+
 #final runtime
 end_time <- Sys.time()
 #get runtimes

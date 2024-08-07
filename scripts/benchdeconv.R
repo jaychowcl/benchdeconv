@@ -10,37 +10,8 @@ library(Matrix)
 library(ggplot2)
 library(SPOTlight)
 library(philentropy)
-
-
-
-# Read sc data
-import_data_meta <- function(data.dir = "data/scRNA_wu", 
-                             gene.column=1,
-                             project = "scRNA_humanbreastcancer",
-                             min.cells = 3,
-                             min.features = 200,
-                             meta.dir = "/localdisk/home/s2600569/project/data/scRNA_wu/metadata.csv",
-                             grain_level = "celltype_major"
-                             ){
-  # Import data
-  sc_obj_seurat.data <- Read10X(data.dir = data.dir, gene.column = gene.column)
-  sc_obj_seurat <- CreateSeuratObject(counts = sc_obj_seurat.data, project = project, min.cells = min.cells, min.features = min.features)
-  
-  # Import metadata
-  meta <- read.csv(meta.dir)
-  
-  # Format and add metadata
-  rownames(meta) <- colnames(sc_obj_seurat)
-  AddMetaData(sc_obj_seurat, meta)
-  sc_obj_seurat@meta.data$celltype_subset <- meta[[grain_level]]
-  
-  # Set idents
-  Idents(sc_obj_seurat) <- meta[[grain_level]]
-  
-  return(list(sc_obj_seurat = sc_obj_seurat, meta = meta))
-}
-
-
+library(reshape2)
+library(tidyr)
 
 # Split sc data
 split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
@@ -85,15 +56,56 @@ split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
               sce_obj_train = sce_obj_synth))
 }
 
+
+
+# Read sc data
+import_data_meta <- function(data.dir = "data/scRNA_wu", 
+                             gene.column=1,
+                             project = "scRNA_humanbreastcancer",
+                             min.cells = 3,
+                             min.features = 200,
+                             meta.dir = "data/scRNA_wu/metadata.csv",
+                             grain_level = "celltype_major",
+                             subtype = "HER2+"
+                             ){
+  # Import data
+  sc_obj_seurat.data <- Read10X(data.dir = data.dir, gene.column = gene.column)
+  sc_obj_seurat <- CreateSeuratObject(counts = sc_obj_seurat.data, project = project, min.cells = min.cells, min.features = min.features)
+  
+  
+  # Import metadata
+  meta <- read.csv(meta.dir)
+  
+  # Format and add metadata
+  rownames(meta) <- colnames(sc_obj_seurat)
+  sc_obj_seurat <- AddMetaData(object = sc_obj_seurat, metadata = meta$subtype, col.name = "subtype")
+  sc_obj_seurat@meta.data$celltype_subset <- meta[[grain_level]]
+  sc_obj_seurat_subtypes <- SplitObject(sc_obj_seurat, split.by = "subtype")
+  sc_obj_seurat <- sc_obj_seurat_subtypes[[subtype]]
+  
+  
+  # Set idents
+  Idents(sc_obj_seurat) <- meta[[grain_level]]
+  
+  #return(list(sc_obj_seurat = sc_obj_seurat, meta = meta))
+  
+  return(split_data(sc_obj_seurat = sc_obj_seurat,
+             meta = meta,
+             proportion = 0.5))
+}
+
 # Run synthspots multiple times to fill st regions
-generate_synthetic_visium_multi <- function(seurat_obj = sc_seurat_meta_split$seurat_obj_synth,
+generate_synthetic_visium_multi <- function(seurat_obj = sc_seurat_meta_sce_split$seurat_obj_synth,
                                             dataset_type = "artificial_partially_dominant_celltype_diverse", 
                                             clust_var = "celltype_subset", 
                                             n_regions = 5, 
                                             max_n_region_spots = 175,
                                             visium_mean = 30000, 
                                             visium_sd = 8000,
-                                            select_celltype = "random"){
+                                            select_celltype = "random",
+                                            n_cells_max = 40,
+                                            min_cell_id_test = argv$min_cell_id_test,
+                                            select_celltype_min_id = argv$select_celltype_min_id){
   # Find no. of repeats to run
   freq_cells <- table(seurat_obj@meta.data[,clust_var]) # table of freqs
   min_celltype <- min(seurat_obj@meta.data[, clust_var]) # celltype with least cells
@@ -109,10 +121,13 @@ generate_synthetic_visium_multi <- function(seurat_obj = sc_seurat_meta_split$se
                                                        n_spots_max = freq_cells[min_celltype],
                                                        visium_mean = visium_mean, 
                                                        visium_sd = visium_sd,
-                                                       select_celltype = select_celltype)
+                                                       select_celltype = select_celltype,
+                                                       n_cells_max = n_cells_max,
+                                                       min_cell_id_test = min_cell_id_test,
+                                                       select_celltype_min_id = select_celltype_min_id)
   } 
   
-  # If multiple cycles:
+  # If multiple cycles: NEED TO FINISH
   if (cycles >1){
     synthetic_visium_data <- generate_synthetic_visium(seurat_obj = seurat_obj, 
                                                        dataset_type = dataset_type, 
@@ -122,7 +137,10 @@ generate_synthetic_visium_multi <- function(seurat_obj = sc_seurat_meta_split$se
                                                        n_spots_max = freq_cells[min_celltype],
                                                        visium_mean = visium_mean, 
                                                        visium_sd = visium_sd,
-                                                       select_celltype = select_celltype)
+                                                       select_celltype = select_celltype,
+                                                       n_cells_max = n_cells_max,
+                                                       min_cell_id_test = min_cell_id_test,
+                                                       select_celltype_min_id = select_celltype_min_id)
     for (i in 1:cycles-1){
       synthetic_visium_data_add <- generate_synthetic_visium(seurat_obj = seurat_obj, 
                                                          dataset_type = dataset_type, 
@@ -132,7 +150,10 @@ generate_synthetic_visium_multi <- function(seurat_obj = sc_seurat_meta_split$se
                                                          n_spots_max = freq_cells[min_celltype],
                                                          visium_mean = visium_mean, 
                                                          visium_sd = visium_sd,
-                                                         select_celltype = select_celltype)
+                                                         select_celltype = select_celltype,
+                                                         n_cells_max = n_cells_max,
+                                                         min_cell_id_test = min_cell_id_test,
+                                                         select_celltype_min_id = select_celltype_min_id)
       
     }
   }
@@ -247,7 +268,8 @@ true_celltype_colnames <- function(prediction_table){
 #calculate rmsd
 getRMSD <- function(prediction_fracs = deconv_rctd,
                     synthetic_visium_data = synthetic_visium_data,
-                    method_annot = "deconv_tool"){
+                    method_annot = "deconv_tool",
+                    min_test = 0){
   #get true fractions
   true_fracs <- subset(synthetic_visium_data$relative_spot_composition, select = -region)
   rownames(true_fracs) <- synthetic_visium_data$relative_spot_composition$name
@@ -278,13 +300,54 @@ getRMSD <- function(prediction_fracs = deconv_rctd,
   
   method_annot <- rep(method_annot, length(colnames(true_fracs)))
   rmsd_table <- data.frame(method = method_annot, celltype = colnames(prediction_fracs), rmsd = rmsd)
-  return(rmsd_table)
+  
+  #calc jsd for min cell density spots
+  if (min_test != 0){
+    #get true fractions of mintest spots
+    true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
+    
+    #get prediction fracs for min cell density spots
+    prediction_fracs_mintest <- prediction_fracs[grep("_mintest", rownames(prediction_fracs), )]
+    
+    
+    rmsd_mintest <- seq(1:dim(true_fracs_mintest)[2])
+    for (i2 in 1:length(colnames(prediction_fracs_mintest))){#per celltype
+      #print(i2)
+      
+      #init differences
+      differences_squared <- 1:length(rownames(true_fracs_mintest))
+      
+      for (i in 1:length(rownames(prediction_fracs_mintest))){#per spot
+        #print(i)
+        difference <- true_fracs_mintest[i, i2] - prediction_fracs_mintest[i, i2]
+        difference_squared <- difference^2
+        differences_squared[i] <- difference_squared
+      }
+      
+      mean_sum <- sum(differences_squared) / length(rownames(true_fracs_mintest))
+      rmsd_celltype <- sqrt(mean_sum)
+      rmsd_mintest[i2] <- rmsd_celltype
+    }
+    mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
+    rmsd_table_mintest <- data.frame(method = method_annot,
+                                     celltype = colnames(prediction_fracs_mintest),
+                                     rmsd = rmsd_mintest,
+                                     density = mintest_density_vector)
+    
+    return(list(rmsd_table = rmsd_table,
+                rmsd_table_mintest = rmsd_table_mintest))
+    
+  }
+  
+  
+  return(list(rmsd_table = rmsd_table))
 }
 
 #calculate JSD
 getJSD <- function(prediction_fracs = deconv_rctd,
                    synthetic_visium_data = synthetic_visium_data,
-                   method_annot = "deconv_tool"){
+                   method_annot = "deconv_tool",
+                   min_test = 0){
   #get true fractions
   true_fracs <- subset(synthetic_visium_data$relative_spot_composition, select = -region)
   rownames(true_fracs) <- synthetic_visium_data$relative_spot_composition$name
@@ -309,9 +372,40 @@ getJSD <- function(prediction_fracs = deconv_rctd,
   jsd_table <- data.frame(method = method_annot, celltype = colnames(true_fracs), jsd = jsd_all)
   jsd_mean <- mean(jsd_table$jsd)
   
+  #calc jsd for min cell density spots
+  if (min_test != 0){
+    #get true fractions of mintest spots
+    true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
+    
+    #get prediction fracs for min cell density spots
+    prediction_fracs_mintest <- prediction_fracs[grep("_mintest", rownames(prediction_fracs), )]
+    
+    
+    jsd_mintest <- seq(1:dim(true_fracs_mintest)[2])
+    for(i in 1:dim(true_fracs_mintest)[2]){
+      jsd_i <- calculate_jsd(true_fracs_mintest[, i], prediction_fracs_mintest[,i])
+      jsd_mintest[i] <- jsd_i
+    }
+    mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
+    jsd_table_mintest <- data.frame(method = method_annot,
+                                    celltype = colnames(true_fracs_mintest),
+                                    jsd = jsd_mintest,
+                                    density = mintest_density_vector)
+    jsd_mean_mintest <- mean(jsd_table_mintest$jsd)
+    
+    return(list(mean = jsd_mean,
+                jsd_table = jsd_table,
+                jsd_mean_mintest = jsd_mean_mintest,
+                jsd_table_mintest = jsd_table_mintest))
+    
+  }
+
+  
   return(list(mean = jsd_mean,
               jsd_table = jsd_table))
 }
+
+
 
 ##VISUALIZE
 #plot spatial scatter pie
@@ -367,4 +461,161 @@ plot_spatial_scatter_pie_truth <- function(synthetic_visium_data = synthetic_vis
   print(spatialscatter)
   dev.off()
 }
+
+#plot error heatmap
+
+#plot overall error heatmap
+spatial_deconvolution_error_plot <- function(synthetic_visium_data = synthetic_visium_data,
+                                             predicted = deconv_rctd,
+                                             coordinates = selected_coords) {
+  # Extract truth
+  rownames(selected_coords) <- selected_coords$"selected_spots$out1"
+  spot_coords <- selected_coords[, !names(selected_coords) %in% "selected_spots$out1"]
+  relative_spots_truth <- synthetic_visium_data$relative_spot_composition
+  rownames(relative_spots_truth) <- relative_spots_truth$name
+  ground_truth <- relative_spots_truth[relative_spots_truth$name %in% rownames(spot_coords), ]
+  
+  # Remove non-numeric columns from ground_truth
+  ground_truth <- ground_truth[, sapply(ground_truth, is.numeric)]
+  
+  # Debug: Print the first few rows of ground_truth and predicted
+  # print("Ground truth (first few rows):")
+  # print(head(ground_truth))
+  
+  # print("Predicted (first few rows):")
+  # print(head(predicted))
+  
+  # Ensure ground_truth and predicted are numeric matrices
+  ground_truth <- as.matrix(ground_truth)
+  predicted <- as.matrix(predicted)
+  
+  # Ensure row names of ground_truth are in predicted
+  common_rows <- intersect(rownames(ground_truth), rownames(predicted))
+  ground_truth <- ground_truth[common_rows, , drop=FALSE]
+  predicted <- predicted[common_rows, , drop=FALSE]
+  
+  # Debug: Print the first few rows of ground_truth and predicted after alignment
+  # print("Aligned ground truth (first few rows):")
+  # print(head(ground_truth))
+  
+  # print("Aligned predicted (first few rows):")
+  # print(head(predicted))
+  
+  # Calculate RMSD values
+  rmsd <- function(x, y) {
+    sqrt(mean((x - y)^2, na.rm = TRUE))
+  }
+  
+  # Debug: Print each RMSD calculation step
+  rmsd_values <- sapply(rownames(ground_truth), function(row_name) {
+    gt_row <- as.numeric(ground_truth[row_name, ])
+    pred_row <- as.numeric(predicted[row_name, ])
+    # print(paste("Ground truth row:", toString(gt_row)))
+    # print(paste("Predicted row:", toString(pred_row)))
+    rmsd_val <- rmsd(gt_row, pred_row)
+    # print(paste("RMSD value:", rmsd_val))
+    rmsd_val
+  })
+  
+  # Handle any potential NA or infinite values in rmsd_values
+  rmsd_values <- rmsd_values[is.finite(rmsd_values)]
+  
+  if(length(rmsd_values) == 0) {
+    stop("All RMSD values are non-finite, cannot generate plot.")
+  }
+  
+  # Prepare data for ggplot
+  spot_names <- rownames(ground_truth)
+  x_flat <- coordinates[spot_names, "X.Coordinate"]
+  y_flat <- coordinates[spot_names, "Y.Coordinate"]
+  plot_data <- data.frame(
+    Spot = spot_names,
+    X = x_flat,
+    Y = y_flat,
+    RMSD = rmsd_values
+  )
+  
+  # Plotting using ggplot2
+  ggplot(plot_data, aes(x = X, y = Y, color = RMSD)) +
+    geom_point(size = 3) +
+    scale_color_gradient(low = "blue", high = "red", na.value = "white") +
+    labs(title = "Spatial Deconvolution RMSD Scatter Plot", x = "X Coordinate", y = "Y Coordinate", color = "RMSD") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+#plot per celltype error heatmaps
+library(ggplot2)
+library(tidyr)
+
+spatial_deconvolution_error_heatmap <- function(synthetic_visium_data = synthetic_visium_data,
+                                                predicted = deconv_rctd,
+                                                coordinates = selected_coords) {
+  # Extract truth
+  rownames(selected_coords) <- selected_coords$"selected_spots$out1"
+  spot_coords <- selected_coords[, !names(selected_coords) %in% "selected_spots$out1"]
+  relative_spots_truth <- synthetic_visium_data$relative_spot_composition
+  rownames(relative_spots_truth) <- relative_spots_truth$name
+  ground_truth <- relative_spots_truth[relative_spots_truth$name %in% rownames(spot_coords), ]
+  colnames(coordinates)[colnames(coordinates) == "selected_spots$out1"] <- "selected_spots.out1"
+  colnames(ground_truth) <- colnames(predicted)
+  
+  # Remove non-numeric columns from ground_truth
+  ground_truth <- ground_truth[, sapply(ground_truth, is.numeric)]
+  
+  # Ensure ground_truth and predicted are numeric matrices
+  ground_truth <- as.matrix(ground_truth)
+  predicted <- as.matrix(predicted)
+  
+  # Ensure row names of ground_truth are in predicted
+  common_rows <- intersect(rownames(ground_truth), rownames(predicted))
+  ground_truth <- ground_truth[common_rows, , drop=FALSE]
+  predicted <- predicted[common_rows, , drop=FALSE]
+  
+  # Calculate RMSD values for each cell type
+  rmsd <- function(x, y) {
+    sqrt(mean((x - y)^2, na.rm = TRUE))
+  }
+  
+  # Prepare data for ggplot
+  spot_names <- rownames(ground_truth)
+  x_flat <- coordinates[spot_names, "X.Coordinate"]
+  y_flat <- coordinates[spot_names, "Y.Coordinate"]
+  
+  plot_data <- data.frame(
+    Spot = rep(spot_names, times = ncol(ground_truth)),
+    X = rep(x_flat, times = ncol(ground_truth)),
+    Y = rep(y_flat, times = ncol(ground_truth)),
+    CellType = rep(colnames(ground_truth), each = length(spot_names)),
+    RMSD = unlist(lapply(colnames(ground_truth), function(celltype) {
+      sapply(rownames(ground_truth), function(row_name) {
+        gt_value <- as.numeric(ground_truth[row_name, celltype])
+        pred_value <- as.numeric(predicted[row_name, celltype])
+        rmsd(gt_value, pred_value)
+      })
+    }))
+  )
+  
+  # Handle any potential NA or infinite values in rmsd_values
+  plot_data <- plot_data[is.finite(plot_data$RMSD), ]
+  
+  if (nrow(plot_data) == 0) {
+    stop("All RMSD values are non-finite, cannot generate plot.")
+  }
+  
+  # Plotting using ggplot2 with facet_wrap
+  plot <- ggplot(plot_data, aes(x = X, y = Y, color = RMSD)) +
+    geom_point(size = 3) +
+    scale_color_gradient(low = "blue", high = "red", na.value = "white") +
+    labs(title = "Spatial Deconvolution RMSD Heatmap for Each Cell Type", x = "X Coordinate", y = "Y Coordinate", color = "RMSD") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    facet_wrap(~ CellType, scales = "free", labeller = label_both)
+  
+  # Save the plot
+  ggsave("RMSD_Heatmap_All_CellTypes.png", plot = plot, width = 15, height = 10)
+}
+
+# Example usage:
+# spatial_deconvolution_error_heatmap(synthetic_visium_data, deconv_rctd, selected_coords)
 
