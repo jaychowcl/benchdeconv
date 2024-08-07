@@ -213,6 +213,9 @@ assign_spotcoords_build_spatialexp <- function(region_coords_file = "./data/spot
   col_regions <- as.vector(region_coords$selected_spots.out1)
   choose_counts <- col_counts %in% col_regions
   filtered_counts <- counts[, choose_counts] # final counts matrix
+  #reorder region_coords to match filtered_counts
+  order_index <- match(colnames(filtered_counts), region_coords$"selected_spots.out1")
+  region_coords <- region_coords[order_index, ]
   
   # build SPATIALEXPERIMENT spatial object
   spatial_obj <- SpatialExperiment(assay= list(counts = filtered_counts),
@@ -304,10 +307,10 @@ getRMSD <- function(prediction_fracs = deconv_rctd,
   #calc jsd for min cell density spots
   if (min_test != 0){
     #get true fractions of mintest spots
-    true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
+      true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
     
     #get prediction fracs for min cell density spots
-    prediction_fracs_mintest <- prediction_fracs[grep("_mintest", rownames(prediction_fracs), )]
+    prediction_fracs_mintest <- prediction_fracs[ grep("_mintest", rownames(prediction_fracs)) ,  ]
     
     
     rmsd_mintest <- seq(1:dim(true_fracs_mintest)[2])
@@ -378,7 +381,7 @@ getJSD <- function(prediction_fracs = deconv_rctd,
     true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
     
     #get prediction fracs for min cell density spots
-    prediction_fracs_mintest <- prediction_fracs[grep("_mintest", rownames(prediction_fracs), )]
+    prediction_fracs_mintest <- prediction_fracs[grep("_mintest", rownames(prediction_fracs), ), ]
     
     
     jsd_mintest <- seq(1:dim(true_fracs_mintest)[2])
@@ -439,7 +442,7 @@ plot_spatial_scatter_pie_truth <- function(synthetic_visium_data = synthetic_vis
                                            selected_coords = selected_coords,
                                            outfile= "./data/results/truth_spatial_scatterpie.pdf",
                                            scatterpie_alpha = 1,
-                                           pie_scale = 0.4){
+                                           pie_scale = 1){
   #prep rownames of selected coords
   rownames(selected_coords) <- selected_coords$`selected_spots$out1`
   spot_coords <- subset(selected_coords, select = -`selected_spots$out1`)
@@ -454,7 +457,7 @@ plot_spatial_scatter_pie_truth <- function(synthetic_visium_data = synthetic_vis
     cell_types = colnames(subset(relative_spots_truth, select = c(-name, -region))),
     img = FALSE,
     scatterpie_alpha = 1,
-    pie_scale = 0.4
+    pie_scale = pie_scale
   )
   
   pdf(outfile)
@@ -526,6 +529,7 @@ spatial_deconvolution_error_plot <- function(synthetic_visium_data = synthetic_v
   
   # Prepare data for ggplot
   spot_names <- rownames(ground_truth)
+  rownames(coordinates) <- coordinates$"selected_spots$out1"
   x_flat <- coordinates[spot_names, "X.Coordinate"]
   y_flat <- coordinates[spot_names, "Y.Coordinate"]
   plot_data <- data.frame(
@@ -537,7 +541,7 @@ spatial_deconvolution_error_plot <- function(synthetic_visium_data = synthetic_v
   
   # Plotting using ggplot2
   ggplot(plot_data, aes(x = X, y = Y, color = RMSD)) +
-    geom_point(size = 3) +
+    geom_point(size = 6) +
     scale_color_gradient(low = "blue", high = "red", na.value = "white") +
     labs(title = "Spatial Deconvolution RMSD Scatter Plot", x = "X Coordinate", y = "Y Coordinate", color = "RMSD") +
     theme_minimal() +
@@ -545,12 +549,10 @@ spatial_deconvolution_error_plot <- function(synthetic_visium_data = synthetic_v
 }
 
 #plot per celltype error heatmaps
-library(ggplot2)
-library(tidyr)
-
 spatial_deconvolution_error_heatmap <- function(synthetic_visium_data = synthetic_visium_data,
                                                 predicted = deconv_rctd,
-                                                coordinates = selected_coords) {
+                                                coordinates = selected_coords,
+                                                outdir = "rmsd_heatmap.png") {
   # Extract truth
   rownames(selected_coords) <- selected_coords$"selected_spots$out1"
   spot_coords <- selected_coords[, !names(selected_coords) %in% "selected_spots$out1"]
@@ -579,6 +581,7 @@ spatial_deconvolution_error_heatmap <- function(synthetic_visium_data = syntheti
   
   # Prepare data for ggplot
   spot_names <- rownames(ground_truth)
+  rownames(coordinates) <- coordinates$"selected_spots.out1"
   x_flat <- coordinates[spot_names, "X.Coordinate"]
   y_flat <- coordinates[spot_names, "Y.Coordinate"]
   
@@ -613,9 +616,8 @@ spatial_deconvolution_error_heatmap <- function(synthetic_visium_data = syntheti
     facet_wrap(~ CellType, scales = "free", labeller = label_both)
   
   # Save the plot
-  ggsave("RMSD_Heatmap_All_CellTypes.png", plot = plot, width = 15, height = 10)
+  ggsave(outdir, plot = plot, width = 15, height = 10)
 }
 
-# Example usage:
-# spatial_deconvolution_error_heatmap(synthetic_visium_data, deconv_rctd, selected_coords)
+
 

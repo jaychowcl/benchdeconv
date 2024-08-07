@@ -77,10 +77,6 @@ input_args <- add_argument(input_args, "--coords_total", help="reference total c
 
 argv <- parse_args(input_args)
 print("Settings:")
-print(argv)
-print("Parsing done.")
-
-
 # test settings
 argv <- list()
 argv$scdata <- "data/scRNA_wu"
@@ -98,6 +94,11 @@ argv$select_celltype_min_id <- "T-cells"
 argv$subtype <- "HER2+"
 argv$coords <- "./data/spot_coords/out1_mintest.csv"
 argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
+print(argv)
+print("Parsing done.")
+
+
+
 
 # Set seed for reproducibility
 print(paste0("---Setting seed = ", argv$seed, "---"))
@@ -159,8 +160,8 @@ print("Synthspot done.")
 
 #get region coords
 print("---Import region coords---")
-selected_coords <- get_region_coords(region_file = "./data/spot_coords/out1.csv",
-                                     total_file = "./data/spot_coords/Spatial-Projection.csv",
+selected_coords <- get_region_coords(region_file = argv$coords,
+                                     total_file = argv$coords_total,
                                      export_file = "./data/spot_coords/regions_coords.csv")
 print("Region coords import done.")
 
@@ -254,7 +255,8 @@ method_names <- c("rctd", "spotlight", "card")
 methods <- list(deconv_rctd, deconv_spotlight, deconv_card)
 
 #get rmsd
-rmsd_all <- data.frame()
+rmsd_all <- list(rmsd_table = data.frame(),
+                 rmsd_table_mintest = data.frame())
 i <- 1
 for (method in methods){
   method = data.frame(method)
@@ -262,12 +264,14 @@ for (method in methods){
                   synthetic_visium_data = synthetic_visium_data,
                   method_annot = method_names[i],
                   min_test = argv$min_cell_id_test)
-  rmsd_all <- rbind(rmsd_all, rmsd_method)
+  rmsd_all$rmsd_table <- rbind(rmsd_all$rmsd_table, rmsd_method$rmsd_table)
+  rmsd_all$rmsd_table_mintest <- rbind(rmsd_all$rmsd_table_mintest, rmsd_method$rmsd_table_mintest)
+  
   i <- i+1
 }
-write.csv(x = rmsd_all, file = paste0(argv$outdir, "rmsd.csv"))
+write.csv(x = rmsd_all$rmsd_table, file = paste0(argv$outdir, "rmsd.csv"))
 if("rmsd_table_mintest" %in% names(rmsd_all)){
-  write.csv(x = rmsd_all$jsd_table_mintest, file = paste0(argvoutdir, "rmsd_mintest.csv"))
+  write.csv(x = rmsd_all$rmsd_table_mintest, file = paste0(argv$outdir, "rmsd_mintest.csv"))
 }
 print("RMSD done.")
 
@@ -282,11 +286,13 @@ for (method in methods){
                        min_test = argv$min_cell_id_test)
   jsd_all$mean <- c(jsd_all$mean, jsd_method$mean)
   jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
+  jsd_all$jsd_mean_mintest <- c(jsd_all$jsd_mean_mintest, jsd_method$mean)
+  jsd_all$jsd_table_mintest <- rbind(jsd_all$jsd_table_mintest, jsd_method$jsd_table)
   i <- i+1
 }
 write.csv(x = jsd_all$jsd_table, file = paste0(argv$outdir, "jsd.csv"))
 if("jsd_table_mintest" %in% names(jsd_all)){
-  write.csv(x = jsd_all$jsd_table_mintest, file = paste0(argvoutdir, "jsd_mintest.csv"))
+  write.csv(x = jsd_all$jsd_table_mintest, file = paste0(argv$outdir, "jsd_mintest.csv"))
 }
 print("JSD done.")
 
@@ -301,7 +307,7 @@ for (method in methods){
                            selected_coords = selected_coords,
                            outfile= paste0( argv$outdir, "_spatial_scatterpie_", method_names[i], ".pdf" ),
                            scatterpie_alpha = 1,
-                           pie_scale = 0.4)
+                           pie_scale = 1)
   i <- i+1
 }
 #plot ground truth
@@ -309,23 +315,31 @@ plot_spatial_scatter_pie_truth(synthetic_visium_data = synthetic_visium_data,
                                selected_coords = selected_coords,
                                outfile= paste0(argv$outdir, "_truth_spatial_scatterpie.pdf"),
                                scatterpie_alpha = 1,
-                               pie_scale = 0.4)
+                               pie_scale = 1)
 print("Spatial scatter pie done.")
 
 #error heatmaps
 #overall error heatmap
 
-spatial_deconvolution_error_plot(synthetic_visium_data = synthetic_visium_data,
-                                 predicted = deconv_rctd,
-                                 coordinates = selected_coords)
-
+i <- 1
+for (method in methods){
+  pdf(paste0(argv$outdir, "rmsd_heatmap_ALL", method_names[i]  , ".pdf"))
+  print(spatial_deconvolution_error_plot(synthetic_visium_data = synthetic_visium_data,
+                                   predicted = method,
+                                   coordinates = selected_coords))
+  dev.off()
+  i <- i+1
+}
 
 #per celltype error heatmaps
-pdf("errortest_per.pdf")
-spatial_deconvolution_error_heatmap(synthetic_visium_data = synthetic_visium_data,
-                                    predicted = deconv_rctd,
-                                    coordinates = selected_coords)
-dev.off()
+i <- 1
+for (method in methods){
+  spatial_deconvolution_error_heatmap(synthetic_visium_data = synthetic_visium_data,
+                                      predicted = method,
+                                      coordinates = selected_coords,
+                                      outdir = paste0(argv$outdir, "rmsd_heatmap_", method_names[i], ".pdf"))
+  i <- i+1
+}
 
 #final runtime
 end_time <- Sys.time()
@@ -339,6 +353,6 @@ runtimes <- data.frame(method = c("benchdeconv", method_names),
 write.csv(runtimes, file = paste0(argv$outdir, "_runtimes.csv"))
 
 
-print("------SHUTTING DOWN benchdeconv------")
+print("------benchdeconv DONE------")
 
 
