@@ -1,14 +1,5 @@
 # Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" --scmeta "data/scRNA_wu/metadata.csv" --outdir ./data/results/test/run_1 --seed 0 --downsize 500 --grain_lvl "celltype_major" --gene_column 1 --synth_dataset "artificial_regional_rare_celltype_diverse" --select_celltype "T-cells"
-# argv <- list()
-# argv$scdata <- "data/scRNA_wu"
-# argv$scmeta <- "data/scRNA_wu/metadata.csv"
-# argv$outdir <- "./data/results/test/run_1"
-# argv$seed <- 0
-# argv$downsize <- 500
-# argv$grain_lvl <- "celltype_major"
-# argv$gene_column <- 1
-# argv$synth_dataset <- "artificial_regional_rare_celltype_diverse"
-# argv$select_celltype <- "T-cells"
+# source("/localdisk/home/s2600569/benchdeconv/benchdeconv/scripts/run.R")
 start_time <- Sys.time()
 
 library(argparser)
@@ -59,10 +50,54 @@ input_args <- add_argument(input_args, "--select_celltype", help="select_celltyp
                            type = "character",
                            default = "T-cells")
 
+input_args <- add_argument(input_args, "--n_cells_max", help="max no. of cells per spot in synthspot",
+                           type = "numeric",
+                           default = 40)
+
+input_args <- add_argument(input_args, "--min_cell_id_test", help="cell density frequency for control spots used to test minimum cell density for identification (0-1)",
+                           type = "numeric",
+                           default = 0)
+
+input_args <- add_argument(input_args, "--select_celltype_min_id", help="Selected celltype for the minimum cell density for identification test, if set to 1",
+                           type = "character",
+                           default = "T-cells")
+
+input_args <- add_argument(input_args, "--subtype", help="subtype to split on with input scRNA data",
+                           type = "character",
+                           default = "HER2+")
+
+input_args <- add_argument(input_args, "--coords", help="coordinate files that have been drawn via Loupe Browser v8",
+                           type = "character",
+                           default = "./data/spot_coords/out1.csv")
+
+input_args <- add_argument(input_args, "--coords_total", help="reference total coords from Loupe Browser v8",
+                           type = "character",
+                           default = "./data/spot_coords/Spatial-Projection.csv")
+
+
 argv <- parse_args(input_args)
 print("Settings:")
 print(argv)
 print("Parsing done.")
+
+
+# test settings
+argv <- list()
+argv$scdata <- "data/scRNA_wu"
+argv$scmeta <- "data/scRNA_wu/metadata.csv"
+argv$outdir <- "./data/results/test/run_1"
+argv$seed <- 0
+argv$downsize <- 500
+argv$grain_lvl <- "celltype_major"
+argv$gene_column <- 1
+argv$synth_dataset <- "artificial_diverse_overlap"
+argv$select_celltype <- "T-cells"
+argv$n_cells_max <- 40
+argv$min_cell_id_test <- 0.1
+argv$select_celltype_min_id <- "T-cells"
+argv$subtype <- "HER2+"
+argv$coords <- "./data/spot_coords/out1_mintest.csv"
+argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
 
 # Set seed for reproducibility
 print(paste0("---Setting seed = ", argv$seed, "---"))
@@ -86,6 +121,9 @@ print("---Creating dirs---")
 if (!dir.exists(dirname(argv$outdir))){
   dir.create(dirname(argv$outdir), showWarnings = TRUE, recursive = TRUE)
 }
+if (!dir.exists("./data/spot_coords")){
+  dir.create("./data/spot_coords", showWarnings = TRUE, recursive = TRUE)
+}
 
 print("Dir creation done.")
 
@@ -93,22 +131,16 @@ print("Dir creation done.")
 
 #import data
 print("---Importing data---")
-sc_seurat_meta <- import_data_meta(data.dir = argv$scdata, 
+sc_seurat_meta_sce_split <- import_data_meta(data.dir = argv$scdata, 
                                        gene.column= argv$gene_column,
                                        project = "scRNA_humanbreastcancer",
                                        min.cells = 3,
                                        min.features = 200,
                                        meta.dir = argv$scmeta,
-                                       grain_level = argv$grain_lvl)
+                                       grain_level = argv$grain_lvl,
+                                       subtype = argv$subtype)
 print("Import done.")
 
-#split data for training and synthetic spot generation
-print("---Splitting data---")
-sc_seurat_meta_sce_split <- split_data(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
-                                   meta = sc_seurat_meta$meta,
-                                   proportion = 0.5)
-
-print("Data split done.")
 
 #generate the synth spots
 print("---Generating synthetic spots---")
@@ -119,7 +151,10 @@ synthetic_visium_data <- generate_synthetic_visium_multi(seurat_obj = sc_seurat_
                                                          max_n_region_spots = 175,
                                                          visium_mean = 30000, 
                                                          visium_sd = 8000,
-                                                         select_celltype = "T-cells")
+                                                         select_celltype = argv$select_celltype,
+                                                         n_cells_max = argv$n_cells_max,
+                                                         min_cell_id_test = argv$min_cell_id_test,
+                                                         select_celltype_min_id = argv$select_celltype_min_id)
 print("Synthspot done.")
 
 #get region coords
@@ -225,11 +260,15 @@ for (method in methods){
   method = data.frame(method)
   rmsd_method <- getRMSD(prediction_fracs = method,
                   synthetic_visium_data = synthetic_visium_data,
-                  method_annot = method_names[i])
+                  method_annot = method_names[i],
+                  min_test = argv$min_cell_id_test)
   rmsd_all <- rbind(rmsd_all, rmsd_method)
   i <- i+1
 }
 write.csv(x = rmsd_all, file = paste0(argv$outdir, "rmsd.csv"))
+if("rmsd_table_mintest" %in% names(rmsd_all)){
+  write.csv(x = rmsd_all$jsd_table_mintest, file = paste0(argvoutdir, "rmsd_mintest.csv"))
+}
 print("RMSD done.")
 
 #get JSD
@@ -239,12 +278,16 @@ for (method in methods){
   method <- data.frame(method)
   jsd_method <- getJSD(prediction_fracs = method,
                        synthetic_visium_data = synthetic_visium_data,
-                       method_annot = method_names[i])
+                       method_annot = method_names[i],
+                       min_test = argv$min_cell_id_test)
   jsd_all$mean <- c(jsd_all$mean, jsd_method$mean)
   jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
   i <- i+1
 }
 write.csv(x = jsd_all$jsd_table, file = paste0(argv$outdir, "jsd.csv"))
+if("jsd_table_mintest" %in% names(jsd_all)){
+  write.csv(x = jsd_all$jsd_table_mintest, file = paste0(argvoutdir, "jsd_mintest.csv"))
+}
 print("JSD done.")
 
 

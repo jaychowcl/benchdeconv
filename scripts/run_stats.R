@@ -3,15 +3,26 @@ library(argparser)
 
 #gather all stats 
 gather_all_stats <- function(indir = "./data/results/all_runs",
-                             outdir = "./data/results/all_runs"){
+                             outdir = "./data/results/all_runs",
+                             mintest = 0){
 
   #get all file names for rmsd and jsd
+  if(mintest != 0){
   rmsd_files <- list.files(path=indir,
-                           pattern = "rmsd\\.csv$",
-                           full.names = TRUE)
-  jsd_files <- list.files(path = indir,
-                          pattern = "jsd\\.csv$",
-                          full.names = TRUE)
+                             pattern = "rmsd_mintest\\.csv$",
+                             full.names = TRUE)
+    jsd_files <- list.files(path = indir,
+                            pattern = "jsd_mintest\\.csv$",
+                            full.names = TRUE)
+  } else {
+    
+    rmsd_files <- list.files(path=indir,
+                             pattern = "rmsd\\.csv$",
+                             full.names = TRUE)
+    jsd_files <- list.files(path = indir,
+                            pattern = "jsd\\.csv$",
+                            full.names = TRUE)
+  }
   
   #iterate through all files and create final all table
   final_tab <- data.frame()
@@ -21,11 +32,20 @@ gather_all_stats <- function(indir = "./data/results/all_runs",
     
     run_no <- regmatches(rmsd_files[i], regexpr("run_(\\d+)", rmsd_files[i]))
     
+    if(mintest == 0){
     new_tab <- data.frame(method = infile_rmsd$method,
                           celltype = infile_rmsd$celltype,
                           rmsd = infile_rmsd$rmsd,
                           jsd = infile_jsd$jsd_table.jsd,
                           run = run_no)
+    } else {
+      new_tab <- data.frame(method = infile_rmsd$method,
+                            celltype = infile_rmsd$celltype,
+                            rmsd = infile_rmsd$rmsd,
+                            jsd = infile_jsd$jsd_table.jsd,
+                            run = run_no,
+                            density = mintest)
+    }
     
     final_tab <- rbind(final_tab, new_tab)
     
@@ -35,6 +55,7 @@ gather_all_stats <- function(indir = "./data/results/all_runs",
   rmsd_list <- c()
   jsd_list <- c()
   method_list <- c()
+  if(mintest == 0){
   for (method in unique(final_tab$method)){
     for (celltype in unique(final_tab$celltype)){
       total_rmsd <- final_tab[final_tab$method == method & final_tab$celltype == celltype, "rmsd"]
@@ -50,9 +71,11 @@ gather_all_stats <- function(indir = "./data/results/all_runs",
                             celltype = unique(final_tab$celltype),
                             rmsd_avg = rmsd_list,
                             jsd_avg = jsd_list)
+  }
   
   #now method stats
   method_tab_all <- c()
+  if(mintest == 0){
   for (method in unique(final_tab$method)){
     total_rmsd <- summary_tab[summary_tab$method == method, "rmsd_avg"]
     total_jsd <- summary_tab[summary_tab$method == method, "jsd_avg"]
@@ -63,10 +86,17 @@ gather_all_stats <- function(indir = "./data/results/all_runs",
     method_tab_all <- rbind(method_tab_all, method_tab)
     
   }
+  }
   
+  if(mintest == 0){
   write.csv(final_tab, file = paste0(outdir, "/all_stats.csv"))
   write.csv(summary_tab, file = paste0(outdir, "/SUMMARY.csv"))
   write.csv(method_tab_all, file = paste0(outdir, "/SUMMARY_methods.csv"))
+  } else {
+    write.csv(final_tab, file = paste0(outdir, "/all_stats_mintest.csv"))
+    write.csv(summary_tab, file = paste0(outdir, "/SUMMARY_mintest.csv"))
+    write.csv(method_tab_all, file = paste0(outdir, "/SUMMARY_methods_mintest.csv"))
+  }
   
   return(list(final_tab = final_tab,
               summary_tab = summary_tab,
@@ -216,6 +246,9 @@ stats_args <- add_argument(stats_args, "--indir", help="Input benchdeconv result
 stats_args <- add_argument(stats_args, "--outdir", help="Output results directory",
                            default = "./data/results/all_runs/SUMMARY")
 
+stats_args <- add_argument(stats_args, "--mintest", help="Flag for doing stats for min tests as well",
+                           default = 0)
+
 argvstats <- parse_args(stats_args)
 
 
@@ -227,7 +260,15 @@ if (!dir.exists(argvstats$outdir)){
 
 #get stats tables
 stats_tabs <- gather_all_stats(indir = argvstats$indir,
-                              outdir = argvstats$outdir)
+                              outdir = argvstats$outdir,
+                              mintest = 0)
+# and _mintest tables
+if(argv$mintest !=0){
+stats_tabs_mintest <- gather_all_stats(indir = argvstats$indir,
+                                       outdir = argvstats$outdir,
+                                       mintest = 1)
+}
+
 #make rmsd boxplot
 pdf(paste0(argvstats$outdir, "/boxplot_rmsd.pdf"))
 plot_boxplots(final_tab = stats_tabs$final_tab,
