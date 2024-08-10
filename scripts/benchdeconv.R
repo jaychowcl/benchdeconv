@@ -334,11 +334,10 @@ getRMSD <- function(prediction_fracs = deconv_rctd,
       rmsd_celltype <- sqrt(mean_sum)
       rmsd_mintest[i2] <- rmsd_celltype
     }
-    mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
+    # mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
     rmsd_table_mintest <- data.frame(method = method_annot,
                                      celltype = colnames(prediction_fracs_mintest),
-                                     rmsd = rmsd_mintest,
-                                     density = mintest_density_vector)
+                                     rmsd = rmsd_mintest)
     
     return(list(rmsd_table = rmsd_table,
                 rmsd_table_mintest = rmsd_table_mintest))

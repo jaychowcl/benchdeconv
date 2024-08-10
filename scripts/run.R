@@ -270,7 +270,7 @@ for (method in methods){
   i <- i+1
 }
 write.csv(x = rmsd_all$rmsd_table, file = paste0(argv$outdir, "rmsd.csv"))
-if(dim(rmsd_all$rmsd_table_mintest)[1] == 0){
+if(dim(rmsd_all$rmsd_table_mintest)[1] != 0){
   write.csv(x = rmsd_all$rmsd_table_mintest, file = paste0(argv$outdir, "rmsd_mintest.csv"))
 }
 print("RMSD done.")
@@ -291,7 +291,7 @@ for (method in methods){
   i <- i+1
 }
 write.csv(x = jsd_all$jsd_table, file = paste0(argv$outdir, "jsd.csv"))
-if(dim(rmsd_all$rmsd_table_mintest)[1] == 0){
+if(dim(rmsd_all$rmsd_table_mintest)[1] != 0){
   write.csv(x = jsd_all$jsd_table_mintest, file = paste0(argv$outdir, "jsd_mintest.csv"))
 }
 print("JSD done.")
