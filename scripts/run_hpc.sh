@@ -197,7 +197,7 @@ Rscript --vanilla ./scripts/run.R --scdata "data/scRNA_wu" \
 --gene_column 1 \
 --synth_dataset "artificial_diverse_overlap" \
 --select_celltype "T-cells" \
---n_cells_max 40 \
+--n_cells_max 15 \
 --min_cell_id_test ${mintest} \
 --select_celltype_min_id ${mintest_id} \
 --subtype ${subtype} \

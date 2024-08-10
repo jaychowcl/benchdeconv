@@ -80,8 +80,11 @@ import_data_meta <- function(data.dir = "data/scRNA_wu",
   rownames(meta) <- colnames(sc_obj_seurat)
   sc_obj_seurat <- AddMetaData(object = sc_obj_seurat, metadata = meta$subtype, col.name = "subtype")
   sc_obj_seurat@meta.data$celltype_subset <- meta[[grain_level]]
+  
+  if(subtype != "none"){
   sc_obj_seurat_subtypes <- SplitObject(sc_obj_seurat, split.by = "subtype")
   sc_obj_seurat <- sc_obj_seurat_subtypes[[subtype]]
+  }
   
   
   # Set idents
@@ -304,7 +307,7 @@ getRMSD <- function(prediction_fracs = deconv_rctd,
   method_annot <- rep(method_annot, length(colnames(true_fracs)))
   rmsd_table <- data.frame(method = method_annot, celltype = colnames(prediction_fracs), rmsd = rmsd)
   
-  #calc jsd for min cell density spots
+  #calc rmsd for min cell density spots
   if (min_test != 0){
     #get true fractions of mintest spots
       true_fracs_mintest <- true_fracs[grep("_mintest", rownames(true_fracs)), ]
@@ -389,11 +392,10 @@ getJSD <- function(prediction_fracs = deconv_rctd,
       jsd_i <- calculate_jsd(true_fracs_mintest[, i], prediction_fracs_mintest[,i])
       jsd_mintest[i] <- jsd_i
     }
-    mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
+    # mintest_density_vector <- rep(min_test, length(colnames(true_fracs_mintest)))
     jsd_table_mintest <- data.frame(method = method_annot,
                                     celltype = colnames(true_fracs_mintest),
-                                    jsd = jsd_mintest,
-                                    density = mintest_density_vector)
+                                    jsd = jsd_mintest)
     jsd_mean_mintest <- mean(jsd_table_mintest$jsd)
     
     return(list(mean = jsd_mean,

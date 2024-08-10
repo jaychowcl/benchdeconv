@@ -270,7 +270,7 @@ for (method in methods){
   i <- i+1
 }
 write.csv(x = rmsd_all$rmsd_table, file = paste0(argv$outdir, "rmsd.csv"))
-if("rmsd_table_mintest" %in% names(rmsd_all)){
+if(dim(rmsd_all$rmsd_table_mintest)[1] == 0){
   write.csv(x = rmsd_all$rmsd_table_mintest, file = paste0(argv$outdir, "rmsd_mintest.csv"))
 }
 print("RMSD done.")
@@ -287,11 +287,11 @@ for (method in methods){
   jsd_all$mean <- c(jsd_all$mean, jsd_method$mean)
   jsd_all$jsd_table <- rbind(jsd_all$jsd_table, jsd_method$jsd_table)
   jsd_all$jsd_mean_mintest <- c(jsd_all$jsd_mean_mintest, jsd_method$mean)
-  jsd_all$jsd_table_mintest <- rbind(jsd_all$jsd_table_mintest, jsd_method$jsd_table)
+  jsd_all$jsd_table_mintest <- rbind(jsd_all$jsd_table_mintest, jsd_method$jsd_table_mintest)
   i <- i+1
 }
 write.csv(x = jsd_all$jsd_table, file = paste0(argv$outdir, "jsd.csv"))
-if("jsd_table_mintest" %in% names(jsd_all)){
+if(dim(rmsd_all$rmsd_table_mintest)[1] == 0){
   write.csv(x = jsd_all$jsd_table_mintest, file = paste0(argv$outdir, "jsd_mintest.csv"))
 }
 print("JSD done.")

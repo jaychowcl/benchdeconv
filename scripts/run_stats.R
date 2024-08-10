@@ -4,7 +4,8 @@ library(argparser)
 #gather all stats 
 gather_all_stats <- function(indir = "./data/results/all_runs",
                              outdir = "./data/results/all_runs",
-                             mintest = 0){
+                             mintest = 0,
+                             runs = c(1,10)){
 
   #get all file names for rmsd and jsd
   if(mintest != 0){
@@ -76,16 +77,16 @@ gather_all_stats <- function(indir = "./data/results/all_runs",
   #now method stats
   method_tab_all <- c()
   if(mintest == 0){
-  for (method in unique(final_tab$method)){
-    total_rmsd <- summary_tab[summary_tab$method == method, "rmsd_avg"]
-    total_jsd <- summary_tab[summary_tab$method == method, "jsd_avg"]
+    for (method in unique(final_tab$method)){
+      total_rmsd <- summary_tab[summary_tab$method == method, "rmsd_avg"]
+      total_jsd <- summary_tab[summary_tab$method == method, "jsd_avg"]
     
-    method_tab <- data.frame(method = method,
-                             rmsd_avg = mean(total_rmsd),
-                             jsd_avg = mean(total_jsd))
-    method_tab_all <- rbind(method_tab_all, method_tab)
+      method_tab <- data.frame(method = method,
+                               rmsd_avg = mean(total_rmsd),
+                               jsd_avg = mean(total_jsd))
+      method_tab_all <- rbind(method_tab_all, method_tab)
     
-  }
+    }
   }
   
   if(mintest == 0){
