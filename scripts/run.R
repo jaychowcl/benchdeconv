@@ -78,22 +78,22 @@ input_args <- add_argument(input_args, "--coords_total", help="reference total c
 argv <- parse_args(input_args)
 print("Settings:")
 # test settings
-# argv <- list()
-# argv$scdata <- "data/scRNA_wu"
-# argv$scmeta <- "data/scRNA_wu/metadata.csv"
-# argv$outdir <- "./data/results/test/run_1"
-# argv$seed <- 0
-# argv$downsize <- 500
-# argv$grain_lvl <- "celltype_major"
-# argv$gene_column <- 1
-# argv$synth_dataset <- "artificial_diverse_overlap"
-# argv$select_celltype <- "T-cells"
-# argv$n_cells_max <- 40
-# argv$min_cell_id_test <- 0.1
-# argv$select_celltype_min_id <- "T-cells"
-# argv$subtype <- "HER2+"
-# argv$coords <- "./data/spot_coords/out1_mintest.csv"
-# argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
+argv <- list()
+argv$scdata <- "data/scRNA_wu"
+argv$scmeta <- "data/scRNA_wu/metadata.csv"
+argv$outdir <- "./data/results/test/run_1"
+argv$seed <- 0
+argv$downsize <- 500
+argv$grain_lvl <- "celltype_major"
+argv$gene_column <- 1
+argv$synth_dataset <- "artificial_diverse_overlap"
+argv$select_celltype <- "T-cells"
+argv$n_cells_max <- 40
+argv$min_cell_id_test <- 0.1
+argv$select_celltype_min_id <- "T-cells"
+argv$subtype <- "HER2+"
+argv$coords <- "./data/spot_coords/out1_mintest.csv"
+argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
 print(argv)
 print("Parsing done.")
 
