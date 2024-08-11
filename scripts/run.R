@@ -2,13 +2,15 @@
 # source("/localdisk/home/s2600569/benchdeconv/benchdeconv/scripts/run.R")
 start_time <- Sys.time()
 
-library(argparser)
+
 
 print("------STARTING benchdeconv------")
+
 print(getwd())
 
 #argparser args
 print("---Parsing input args---")
+library(argparser)
 
 # Create a parser
 input_args <- arg_parser("benchdeconv: a benchmarking tool for spatial deconvolution methods.")
@@ -101,9 +103,9 @@ print("Parsing done.")
 
 
 # Set seed for reproducibility
-print(paste0("---Setting seed = ", argv$seed, "---"))
-set.seed(argv$seed) 
-print("Seed setting done.")
+# print(paste0("---Setting seed = ", argv$seed, "---"))
+# set.seed(argv$seed) 
+# print("Seed setting done.")
 
 print("---Sourcing benchdeconv.R---")
 # install_local("../synthspot_devbuild_0.1", force = FALSE)

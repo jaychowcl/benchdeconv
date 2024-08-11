@@ -29,7 +29,7 @@ split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
   num_cells_1 <- round(total_cells * proportion)
   
   # Generate a random sample of cells for the first subset
-  #set.seed(seed) # Setting a seed for reproducibility
+ 
   cell_indices <- sample(1:total_cells, size = num_cells_1)
   
   # Split the cells into two subsets
