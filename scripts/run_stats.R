@@ -1,4 +1,5 @@
 library(ggplot2)
+library(argparser)
 
 #gather runs
 gather_runs <- function(indir = "./data/all_runs/",
@@ -159,13 +160,11 @@ plot_boxplot <- function(indata = datasets_data,
 
 #plot scatter
 
-plot_scatter <- function(indata = mintest_data,
-                         plot_metric = "rmsd",
-                         method = "rctd",
-                         annot = "B-cells",
-                         annot_col = "select_celltype"){
+plot_scatter_mintest <- function(indata = mintest_data,
+                         method = "rctd"){
   
   # indata <- indata[indata[[annot_col]] == annot, ]
+  #plot_metric = "rmsd", annot = "B-cells",  annot_col = "select_celltype"
   indata_all <- indata[indata$method == method, ]
   indata <- indata_all
   
@@ -206,6 +205,51 @@ plot_scatter <- function(indata = mintest_data,
 
 }
 
+#plot scatter insize
+plot_scatter_insize <- function(indata = insize_data,
+                                method = "rctd"){
+  
+  # indata <- indata[indata[[annot_col]] == annot, ]
+  # #plot_metric = "rmsd", annot = "B-cells",  annot_col = "select_celltype"
+  # indata_all <- indata[indata$method == method, ]
+  # indata <- indata_all
+  # 
+  #get means
+  mean_tab <- data.frame()
+  for(method in unique(indata$method)){
+    for(n_cell in unique(indata$n_cells)){
+        
+        # print(indata$rmsd[(indata$select_celltype == select_celltype) & (indata$density == density) & (indata$celltype == celltype)])
+        rmsd_values <- na.omit(indata$rmsd[(indata$n_cells == n_cell) & (indata$method == method)])
+        rmsd <- mean(rmsd_values,
+                     na.rm = TRUE)
+        rmsd_se <- sd(rmsd_values)/sqrt(length(rmsd_values))
+        
+        jsd_values <- na.omit(indata$jsd[(indata$n_cells == n_cell)& (indata$method == method)])
+        jsd <-mean(jsd_values,
+                   na.rm = TRUE)
+        jsd_se <- sd(jsd_values)/sqrt(length(jsd_values))
+        
+        method_i <- method
+        
+        df_append <- data.frame(rmsd = rmsd,
+                                rmsd_se = rmsd_se,
+                                jsd = jsd,
+                                jsd_se = jsd_se,
+                                n_cells = n_cell,
+                                method = method_i) 
+        mean_tab <- rbind(mean_tab, df_append)
+      
+    }
+  }
+  # mean_tab$select_celltype <- gsub("-", ".", mean_tab$select_celltype)
+  # #get only select_celltype
+  # mean_tab <- mean_tab[mean_tab$celltype == mean_tab$select_celltype,]
+  # 
+  return(mean_tab)
+  
+}
+
 
 
 
@@ -219,18 +263,69 @@ stats_args <- add_argument(stats_args, "--outdir", help="Output directory.",
                            default = "./data/results/")
 argv <- parse_args(stats_args)
 
+if (!dir.exists(argv$outdir)){
+  dir.create(argv$outdir, showWarnings = TRUE, recursive = TRUE)
+}
+
 
 #experiments:
 #t1-50 insize test
-insize_annot_tags <- c(rep("none", 10),
-                       rep(500, 10),
-                       rep(1000, 10),
-                       rep (2500, 10),
-                       rep(5000, 10))
+
 #gather indata 
 insize_data <- gather_runs(indir = argv$indir,
                            prefix = "run_",
                            runs=c(1,50))
+insize_annot_tags <- c(rep(100, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
+                       rep(500, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
+                       rep(1000, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
+                       rep(2500, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
+                       rep(5000, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10))
+
+insize_data$n_cells <- insize_annot_tags
+
+#plot scatter
+#prep data
+mean_tab <- plot_scatter_insize(indata = insize_data,
+                                       method = "none")
+
+# Calculate the average RMSD for each method per n_cells
+rmsd_plot <- ggplot(mean_tab, aes(x = n_cells, y = rmsd, color = method)) +
+  geom_line() +            # Line plot
+  geom_point() +           # Add points
+  geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
+                width = 0.05, 
+                color = "black", 
+                size = 0.8) +
+  labs(title = "Multiple Groups Line Plot",
+       x = "n_cells",
+       y = "RMSD",
+       color = "Group")   # Labels and title
+
+ggsave(paste0(argv$outdir, "_insize_scatter_rmsd", ".png"),
+       plot = rmsd_plot, width = 6, height = 4, dpi = 300)
+
+
+#jsd
+
+jsd_plot <- ggplot(mean_tab, aes(x = n_cells, y = jsd, color = method)) +
+  geom_line() +            # Line plot
+  geom_point() +           # Add points
+  geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
+                width = 0.05, 
+                color = "black", 
+                size = 0.8) +
+  labs(title = "Multiple Groups Line Plot",
+       x = "n_cells",
+       y = "JSD",
+       color = "Group")    # Labels and title
+
+ggsave(paste0(argv$outdir, "_insize_scatter_jsd", ".png"),
+       plot = jsd_plot, width = 6, height = 4, dpi = 300)
+
+
+
+
+
 
 
 
@@ -289,6 +384,7 @@ plot_boxplot(indata = datasets_data,
              cats = "annot",
              groups = "method")
 dev.off()
+
 #plot celltypes 
 for(method in unique(datasets_data$method)){
   pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_",method, ".pdf"))
@@ -326,50 +422,52 @@ mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$r
                            rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25))
 mintest_data$select_celltype <- mintest_celltype_tags
 
-#prep data
-mean_tab <- plot_scatter(indata = mintest_data,
-                         plot_metric = "rmsd",
-                         method = "rctd",
-                         annot = "B-cells",
-                         annot_col = "select_celltype")
+
 
 #create scatter
-#rmsd
-pdf(paste0(argv$outdir, "mintest_scatter_rmsd", ".pdf"))
-ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
-  geom_line() +            # Line plot
-  geom_point() +           # Add points
-  geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
-                width = 0.05, 
-                color = "black", 
-                size = 0.8) +
-  labs(title = "Multiple Groups Line Plot",
-       x = "Density",
-       y = "RMSD",
-       color = "Group")   # Labels and title
+for(method_select in unique(mintest_data$method)){
+  method_select <- as.character(method_select)
+  #prep data
+  mean_tab <- plot_scatter_mintest(indata = mintest_data,
+                           method = method_select)
+  
+  # pdf(paste0(argv$outdir, method_select, "_mintest_scatter_rmsd", ".pdf"))
+  rmsd_plot <- ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
+    geom_line() +            # Line plot
+    geom_point() +           # Add points
+    geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
+                  width = 0.05, 
+                  color = "black", 
+                  size = 0.8) +
+    labs(title = "Multiple Groups Line Plot",
+         x = "Density",
+         y = "RMSD",
+         color = "Group")   # Labels and title
+  
+  ggsave(paste0(argv$outdir, method_select, "_mintest_scatter_rmsd", ".png"),
+         plot = rmsd_plot, width = 6, height = 4, dpi = 300)
+  
 
-dev.off()
-#jsd
-pdf(paste0(argv$outdir, "mintest_scatter_jsd", ".pdf"))
-ggplot(mean_tab, aes(x = density, y = jsd, color = select_celltype)) +
-  geom_line() +            # Line plot
-  geom_point() +           # Add points
-  geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
-                width = 0.05, 
-                color = "black", 
-                size = 0.8) +
-  labs(title = "Multiple Groups Line Plot",
-       x = "Density",
-       y = "JSD",
-       color = "Group")   # Labels and title
+  # dev.off()
+  
+  #jsd
+  # pdf(paste0(argv$outdir, method_select, "_mintest_scatter_jsd", ".pdf"))
+  jsd_plot <- ggplot(mean_tab, aes(x = density, y = jsd, color = select_celltype)) +
+    geom_line() +            # Line plot
+    geom_point() +           # Add points
+    geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
+                  width = 0.05, 
+                  color = "black", 
+                  size = 0.8) +
+    labs(title = "Multiple Groups Line Plot",
+         x = "Density",
+         y = "JSD",
+         color = "Group")    # Labels and title
+  
+  ggsave(paste0(argv$outdir, method_select, "_mintest_scatter_jsd", ".png"),
+         plot = jsd_plot, width = 6, height = 4, dpi = 300)
+  
 
-dev.off()
+  # dev.off()
 
-
-
-# insize_stats <- gather_runs(indir = "./data/results/all_runs",
-#                                       prefix = "run",
-#                                       runs = c(1,50),
-#                                       annot_tags = insize_annot_tags)
-# 
-# 
+}
