@@ -1,3 +1,6 @@
+library(ggplot2)
+
+#gather runs
 gather_runs <- function(indir = "./data/all_runs/",
                         prefix = "run_",
                         runs = c(1,50)){
@@ -41,20 +44,26 @@ gather_runs <- function(indir = "./data/all_runs/",
   return(final_tab)
 }
 
-gather_runs_mintest <- function(indir = "./data/results/test",
+#gather mintest runs
+gather_runs_mintest <- function(indir = "./data/all_runs/",
                         prefix = "run_",
                         runs = c(1,50)){
   
- #gather all run files
+  #gather rmsd and jsd stats from runs
   all_run_files <- c()
   for(i in runs[1]:runs[2]){
     runs_files <- list.files(path=indir,
-                             pattern = paste0(prefix, i),
+                             pattern = paste0(prefix, i, "[rj]"),
                              full.names = TRUE)
     all_run_files <- c(all_run_files, runs_files)
     
   }  
-   #gather rmsd and jsd mintest stats from runs
+  
+  if(length(all_run_files) == 0){
+    stop("No files in indir!")
+  }
+  
+  
   rmsd_files <- all_run_files[grep("rmsd_mintest.csv$", all_run_files)]
   jsd_files <- all_run_files[grep("jsd_mintest.csv$", all_run_files)]
   
@@ -70,7 +79,8 @@ gather_runs_mintest <- function(indir = "./data/results/test",
     new_tab <- data.frame(method = infile_rmsd$method,
                           celltype = infile_rmsd$celltype,
                           rmsd = infile_rmsd$rmsd,
-                          jsd = infile_jsd$jsd)
+                          jsd = infile_jsd$jsd,
+                          run = run_no)
     #append
     final_tab <- rbind(final_tab, new_tab)
   }
@@ -146,6 +156,84 @@ plot_boxplot <- function(indata = datasets_data,
   legend("right", legend = cell_types, pch = symbols, col = colors, title = groups, cex = 0.7)
   
 }
+
+#plot scatter
+
+plot_scatter <- function(indata = mintest_data,
+                         plot_metric = "rmsd",
+                         method = "rctd",
+                         annot = "B-cells",
+                         annot_col = "select_celltype"){
+  
+  # indata <- indata[indata[[annot_col]] == annot, ]
+  indata_all <- indata[indata$method == method, ]
+  indata <- indata_all
+  
+  #get means
+  mean_tab <- c()
+  for(select_celltype in unique(indata$select_celltype)){
+    for(density in unique(indata$density)){
+      for(celltype in unique(indata$celltype)){
+        
+        # print(indata$rmsd[(indata$select_celltype == select_celltype) & (indata$density == density) & (indata$celltype == celltype)])
+        rmsd_values <- indata$rmsd[(indata$select_celltype == select_celltype) & (indata$density == density) & (indata$celltype == celltype)]
+        rmsd <- mean(rmsd_values,
+                     na.rm = TRUE)
+        rmsd_se <- sd(rmsd_values)/sqrt(length(rmsd_values))
+        
+        jsd_values <- indata$jsd[(indata$select_celltype == select_celltype) & (indata$density == density) & (indata$celltype == celltype)]
+        jsd <-mean(jsd_values,
+                   na.rm = TRUE)
+        jsd_se <- sd(jsd_values)/sqrt(length(jsd_values))
+       
+        
+        df_append <- data.frame(celltype = celltype,
+                                rmsd = rmsd,
+                                rmsd_se = rmsd_se,
+                                jsd = jsd,
+                                jsd_se = jsd_se,
+                                density = density,
+                                select_celltype = select_celltype) 
+        mean_tab <- rbind(mean_tab, df_append)
+      }
+    }
+  }
+  mean_tab$select_celltype <- gsub("-", ".", mean_tab$select_celltype)
+  #get only select_celltype
+  mean_tab <- mean_tab[mean_tab$celltype == mean_tab$select_celltype,]
+  
+  # Create the plot
+  ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
+    geom_line() +            # Line plot
+    geom_point() +           # Add points
+    geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
+                  width = 0.3, 
+                  color = "black", 
+                  size = 0.8) +
+    labs(title = "Multiple Groups Line Plot",
+         x = "Density",
+         y = plot_metric,
+         color = "Group")   # Labels and title
+  
+  # 
+  # plot(x = mean_tab$density[mean_tab$select_celltype == mean_tab$select_celltype[1]],
+  #      y = mean_tab[[plot_metric]][mean_tab$select_celltype == mean_tab$select_celltype[1]],
+  #      type = "b",
+  #      xlab = "Density",
+  #      ylab = plot_metric,
+  #      pch=1,
+  #      col = 1)
+  # 
+  # for(celltype in unique(mean_tab$celltype)[-1]){
+  #   points()
+  #   
+  # }
+  # 
+  
+}
+
+
+
 
 
 ###START
@@ -229,7 +317,7 @@ plot_boxplot(indata = datasets_data,
 dev.off()
 #plot celltypes 
 for(method in unique(datasets_data$method)){
-  pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_",method, "_.pdf"))
+  pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_",method, ".pdf"))
   plot_boxplot(indata = datasets_data,
                plot_metric = "rmsd",
                annot = "TNBC",
@@ -244,21 +332,34 @@ for(method in unique(datasets_data$method)){
 
 
 
-#t80-180
-mintest_density_tags <- c(rep(c(rep(0.05, 5),
-                          rep(0.1, 5),
-                          rep(0.2, 5),
-                          rep(0.5, 5),
-                          rep(0.8, 5)), 4))
-
-mintest_celltype_tags <- c(rep("B-cells", 25),
-                           rep("Plasmablasts", 25),
-                           rep("T-cells", 25),
-                           rep("Myeloid", 25))
-
+#t80-180 min density for id
 #gather the data 
+mintest_data <- gather_runs_mintest(indir = argv$indir,
+                                    prefix = "run_",
+                                    runs=c(81,180))
 
+#gather annot
+mintest_density_tags <- c(rep(0.05, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
+                          rep(0.1, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
+                          rep(0.2, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
+                          rep(0.5, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
+                          rep(0.8, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5))
+mintest_data$density <- mintest_density_tags
 
+mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
+                           rep("Plasmablasts", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
+                           rep("T-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
+                           rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25))
+mintest_data$select_celltype <- mintest_celltype_tags
+
+#create scatter
+pdf(paste0(argv$outdir, "mintest_scatter", ".pdf"))
+plot_scatter(indata = mintest_data,
+             plot_metric = "rmsd",
+             method = "rctd",
+             annot = "B-cells",
+             annot_col = "select_celltype")
+dev.off()
 
 
 
