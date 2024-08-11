@@ -31,7 +31,10 @@ split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
   # Generate a random sample of cells for the first subset
  
   cell_indices <- sample(1:total_cells, size = num_cells_1)
-  print(paste0("CELL INDICIES HERE",head(cell_indices, 25)))
+  print(paste0("CELL INDICIES HERE",head(cell_indices)))
+  print(paste0("RANDOM NUMBERS HERE before seed change", argv$seed, runif(5)))
+  set.seed(argv$seed)
+  print(paste0("RANDOM NUMBERS HERE after seed change", argv$seed, runif(5)))
   
   # Split the cells into two subsets
   cells_1 <- colnames(sc_obj_seurat)[cell_indices]
