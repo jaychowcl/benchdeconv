@@ -1,5 +1,6 @@
 library(ggplot2)
 library(argparser)
+library(dunn.test)
 
 #gather runs
 gather_runs <- function(indir = "./data/all_runs/",
@@ -86,6 +87,7 @@ gather_runs_mintest <- function(indir = "./data/all_runs/",
     final_tab <- rbind(final_tab, new_tab)
   }
   
+
   return(final_tab)
 }
 
@@ -117,17 +119,18 @@ plot_boxplot <- function(indata = datasets_data,
           las = 1,
           outline = FALSE)
   
+  
   if(groups != "none"){
     #prep points
     points_tab <- data.frame()
     i=1
-    for(cat in unique(indata[[cats]])){
+    for(cat_i in unique(indata[[cats]])){
       for(group in unique(indata[[groups]])){
-        subset_values <- indata[[plot_metric]][indata[[cats]] == cat & indata[[groups]] == group]
+        subset_values <- indata[[plot_metric]][indata[[cats]] == cat_i & indata[[groups]] == group]
         subset_value <- mean(subset_values)
         stderr <- sd(subset_values) / sqrt(length(subset_values))
         
-        subset_table <- data.frame(method = cat,
+        subset_table <- data.frame(method = cat_i,
                                    celltype = group,
                                    metric = subset_value,
                                    stderr = stderr)
@@ -152,7 +155,12 @@ plot_boxplot <- function(indata = datasets_data,
              col = celltype_color_map[points_tab$celltype[i]])
       
     }
+  } else {
+    cell_types <- unique(indata$celltype)
   }
+  
+
+
   # Add a smaller legend
   legend("right", legend = cell_types, pch = symbols, col = colors, title = groups, cex = 0.7)
   
@@ -282,6 +290,7 @@ insize_annot_tags <- c(rep(100, length(insize_data$run[insize_data$run == unique
                        rep(5000, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10))
 
 insize_data$n_cells <- insize_annot_tags
+insize_data <- na.omit(insize_data)
 
 #plot scatter
 #prep data
@@ -342,7 +351,7 @@ dataset_annot_tags <- c(rep("HER2+", length(datasets_data$run[datasets_data$run 
                         rep("TNBC", length(datasets_data$run[datasets_data$run == unique(datasets_data$run)[1]])*10) )
                           
 datasets_data$annot <- dataset_annot_tags
-
+datasets_data <- na.omit(datasets_data)
 
 #plot methods per dataset
 for(dataset_type in unique(dataset_annot_tags)){
@@ -366,6 +375,22 @@ for(dataset_type in unique(dataset_annot_tags)){
   dev.off()
   
 }
+#methods per dataset KW and dunn
+for(dataset_type in unique(dataset_annot_tags)){
+  datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$method, method="bh", kw = TRUE,
+                                            label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  write(x = dunn_methodperdataset,
+            file = paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_rmsd.txt"))
+}
+for(dataset_type in unique(dataset_annot_tags)){
+  datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$method, method="bh", kw = TRUE,
+                                                    label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  write(x = dunn_methodperdataset,
+        file = paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_jsd.txt"))
+}
+
 #plot datasets
 pdf(paste0(argv$outdir,"datasets_boxplot__perdatasetpermethod_rmsd.pdf"))
 plot_boxplot(indata = datasets_data,
@@ -376,6 +401,7 @@ plot_boxplot(indata = datasets_data,
              groups = "method")
 dev.off()
 
+
 pdf(paste0(argv$outdir,"datasets_boxplot__perdatasetpermethod_jsd.pdf"))
 plot_boxplot(indata = datasets_data,
              plot_metric = "jsd",
@@ -385,9 +411,23 @@ plot_boxplot(indata = datasets_data,
              groups = "method")
 dev.off()
 
+#kw and dunn tests per dataset
+datasets_data_dataset <- datasets_data
+dunn_perdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$annot, method="bh", kw = TRUE,
+                                          label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+write(x = dunn_perdataset,
+          file = paste0(argv$outdir, "_dunn_perdataset_rmsd.txt"))
+
+dunn_perdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$annot, method="bh", kw = TRUE,
+                                            label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+write(x = dunn_perdataset,
+      file = paste0(argv$outdir, "_dunn_perdataset_jsd.txt"))
+
+
 #plot celltypes 
 for(method in unique(datasets_data$method)){
-  pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_",method, ".pdf"))
+  print(method)
+  pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_", method, ".pdf"))
   plot_boxplot(indata = datasets_data,
                plot_metric = "rmsd",
                annot = "TNBC",
@@ -397,6 +437,21 @@ for(method in unique(datasets_data$method)){
                cats = "celltype",
                groups = "none")
   dev.off()
+}
+#kw and dunn per celltypes
+for(dataset_type in unique(datasets_data$method)){
+  datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$celltype, method="bh", kw = TRUE,
+                                                    label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  write(x = dunn_methodperdataset,
+        file = paste0(argv$outdir, dataset_type,"_dunn_percelltype_rmsd.txt"))
+}
+for(dataset_type in unique(datasets_data$method)){
+  datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$celltype, method="bh", kw = TRUE,
+                                                    label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  write(x = dunn_methodperdataset,
+        file = paste0(argv$outdir, dataset_type,"_dunn_percelltype_jsd.txt"))
 }
 
 
@@ -409,11 +464,11 @@ mintest_data <- gather_runs_mintest(indir = argv$indir,
                                     runs=c(81,180))
 
 #gather annot
-mintest_density_tags <- c(rep(0.05, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
-                          rep(0.1, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
-                          rep(0.2, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
-                          rep(0.5, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5),
-                          rep(0.8, length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*5))
+mintest_density_tags <- c(rep(c(rep(0.05, 135),
+                          rep(0.1, 135),
+                          rep(0.2, 135),
+                          rep(0.5, 135),
+                          rep(0.8, 135)), 4))
 mintest_data$density <- mintest_density_tags
 
 mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
@@ -421,7 +476,7 @@ mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$r
                            rep("T-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
                            rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25))
 mintest_data$select_celltype <- mintest_celltype_tags
-
+mintest_data <- na.omit(mintest_data)
 
 
 #create scatter
