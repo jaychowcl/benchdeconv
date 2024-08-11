@@ -97,7 +97,7 @@ print("Settings:")
 # argv$coords <- "./data/spot_coords/out1_mintest.csv"
 # argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
 print(argv)
-print(paste0(argv$seed," RANDOM NUMBERS HERE",runif(5)))
+
 print("Parsing done.")
 
 

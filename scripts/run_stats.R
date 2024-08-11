@@ -207,7 +207,7 @@ plot_scatter <- function(indata = mintest_data,
     geom_line() +            # Line plot
     geom_point() +           # Add points
     geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
-                  width = 0.3, 
+                  width = 0.05, 
                   color = "black", 
                   size = 0.8) +
     labs(title = "Multiple Groups Line Plot",
