@@ -202,34 +202,8 @@ plot_scatter <- function(indata = mintest_data,
   #get only select_celltype
   mean_tab <- mean_tab[mean_tab$celltype == mean_tab$select_celltype,]
   
-  # Create the plot
-  ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
-    geom_line() +            # Line plot
-    geom_point() +           # Add points
-    geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
-                  width = 0.05, 
-                  color = "black", 
-                  size = 0.8) +
-    labs(title = "Multiple Groups Line Plot",
-         x = "Density",
-         y = plot_metric,
-         color = "Group")   # Labels and title
-  
-  # 
-  # plot(x = mean_tab$density[mean_tab$select_celltype == mean_tab$select_celltype[1]],
-  #      y = mean_tab[[plot_metric]][mean_tab$select_celltype == mean_tab$select_celltype[1]],
-  #      type = "b",
-  #      xlab = "Density",
-  #      ylab = plot_metric,
-  #      pch=1,
-  #      col = 1)
-  # 
-  # for(celltype in unique(mean_tab$celltype)[-1]){
-  #   points()
-  #   
-  # }
-  # 
-  
+  return(mean_tab)
+
 }
 
 
@@ -352,13 +326,43 @@ mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$r
                            rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25))
 mintest_data$select_celltype <- mintest_celltype_tags
 
+#prep data
+mean_tab <- plot_scatter(indata = mintest_data,
+                         plot_metric = "rmsd",
+                         method = "rctd",
+                         annot = "B-cells",
+                         annot_col = "select_celltype")
+
 #create scatter
-pdf(paste0(argv$outdir, "mintest_scatter", ".pdf"))
-plot_scatter(indata = mintest_data,
-             plot_metric = "rmsd",
-             method = "rctd",
-             annot = "B-cells",
-             annot_col = "select_celltype")
+#rmsd
+pdf(paste0(argv$outdir, "mintest_scatter_rmsd", ".pdf"))
+ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
+  geom_line() +            # Line plot
+  geom_point() +           # Add points
+  geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
+                width = 0.05, 
+                color = "black", 
+                size = 0.8) +
+  labs(title = "Multiple Groups Line Plot",
+       x = "Density",
+       y = "RMSD",
+       color = "Group")   # Labels and title
+
+dev.off()
+#jsd
+pdf(paste0(argv$outdir, "mintest_scatter_jsd", ".pdf"))
+ggplot(mean_tab, aes(x = density, y = jsd, color = select_celltype)) +
+  geom_line() +            # Line plot
+  geom_point() +           # Add points
+  geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
+                width = 0.05, 
+                color = "black", 
+                size = 0.8) +
+  labs(title = "Multiple Groups Line Plot",
+       x = "Density",
+       y = "JSD",
+       color = "Group")   # Labels and title
+
 dev.off()
 
 
