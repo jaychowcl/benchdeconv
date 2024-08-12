@@ -425,7 +425,7 @@ write(x = dunn_perdataset,
 
 
 #plot celltypes 
-for(method in unique(datasets_data$method)){
+for(method in unique(datasets_data$method)){#NOT WORKING
   print(method)
   pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_", method, ".pdf"))
   plot_boxplot(indata = datasets_data,
@@ -470,11 +470,19 @@ mintest_density_tags <- c(rep(c(rep(0.05, 135),
                           rep(0.5, 135),
                           rep(0.8, 135)), 4))
 mintest_data$density <- mintest_density_tags
+##debugstart
+allrunlist <- c(paste0("run_", seq(81,180)))
+notindata <- setdiff(allrunlist, unique(mintest_data$run))
+mintest_density_tags <- mintest_density_tags[-c(2106:2132)]
+
+##debug end
+
+
 
 mintest_celltype_tags <- c(rep("B-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
                            rep("Plasmablasts", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
                            rep("T-cells", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25),
-                           rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*25))
+                           rep("Myeloid", length(mintest_data$run[mintest_data$run == unique(mintest_data$run)[1]])*24))
 mintest_data$select_celltype <- mintest_celltype_tags
 mintest_data <- na.omit(mintest_data)
 

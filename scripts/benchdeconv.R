@@ -32,12 +32,12 @@ split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
   # Generate a random sample of cells for the first subset
  
   # cell_indices <- sample(1:total_cells, size = num_cells_1)
-  # print(paste0("CELL INDICIES before seed change", head(cell_indices)))
-  # print(paste0("RANDOM NUMBERS HERE before seed change", argv$seed, runif(5)))
+  print(paste0("CELL INDICIES before seed change-", argv$seed,"-",head(cell_indices,1)))
+  print(paste0("RANDOM NUMBERS HERE before seed change-", argv$seed,"-", runif(1)))
   set.seed(argv$seed) #set seed here
   cell_indices <- sample(1:total_cells, size = num_cells_1)
-  # print(paste0("CELL INDICIES after seed change", argv$seed, head(cell_indices)))
-  # print(paste0("RANDOM NUMBERS HERE after seed change", argv$seed, runif(5)))
+  print(paste0("CELL INDICIES after seed change-", argv$seed,"-", argv$seed, head(cell_indices,1)))
+  print(paste0("RANDOM NUMBERS HERE after seed change", argv$seed,"-", runif(1)))
   
   # Split the cells into two subsets
   cells_1 <- colnames(sc_obj_seurat)[cell_indices]
