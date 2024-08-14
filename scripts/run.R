@@ -146,6 +146,10 @@ sc_seurat_meta_sce_split <- import_data_meta(data.dir = argv$scdata,
 print("Import done.")
 
 
+cells_tab <- table(sc_seurat_meta_sce_split$meta_train$celltype_major)
+print(cells_tab)
+write.csv(cells_tab, file = "./data/results/cells_tab.csv")
+
 #generate the synth spots
 print("---Generating synthetic spots---")
 synthetic_visium_data <- generate_synthetic_visium_multi(seurat_obj = sc_seurat_meta_sce_split$seurat_obj_synth,

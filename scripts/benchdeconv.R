@@ -30,7 +30,7 @@ split_data <- function(sc_obj_seurat = sc_seurat_meta$sc_obj_seurat,
   num_cells_1 <- round(total_cells * proportion)
   
   # Generate a random sample of cells for the first subset
- 
+  cell_indices <- sample(1:total_cells, size = num_cells_1)
   # cell_indices <- sample(1:total_cells, size = num_cells_1)
   print(paste0("CELL INDICIES before seed change-", argv$seed,"-",head(cell_indices,1)))
   print(paste0("RANDOM NUMBERS HERE before seed change-", argv$seed,"-", runif(1)))

@@ -109,7 +109,7 @@ plot_boxplot <- function(indata = datasets_data,
   if(annot2 != "none"){
     indata <- indata[indata[[annot2_col]] == annot2, ]
   }
-  
+  # pdf("testhere.pdf")
   # Create the horizontal boxplot for the selected plot_metric
   boxplot(indata[[plot_metric]] ~ indata[[cats]],
           horizontal = TRUE,
@@ -117,8 +117,9 @@ plot_boxplot <- function(indata = datasets_data,
           ylab = "",
           main = paste(toupper(plot_metric), "Values by ", cats),
           las = 1,
-          outline = FALSE)
-  
+          outline = FALSE,
+          range = 0)
+ # dev.off()
   
   if(groups != "none"){
     #prep points
@@ -141,12 +142,12 @@ plot_boxplot <- function(indata = datasets_data,
     
     # Define unique cell types and assign symbols and colors
     cell_types <- unique(points_tab$celltype)
-    symbols <- 1:length(cell_types) # Using different point symbols (1 to number of cell types)
-    colors <- rainbow(length(cell_types)) # Assign different colors to each cell type
+    symbols_i <- 1:length(cell_types) # Using different point symbols (1 to number of cell types)
+    colors_i <- rainbow(length(cell_types)) # Assign different colors to each cell type
     
     # Create a mapping of cell types to symbols and colors
-    celltype_symbol_map <- setNames(symbols, cell_types)
-    celltype_color_map <- setNames(colors, cell_types)
+    celltype_symbol_map <- setNames(symbols_i, cell_types)
+    celltype_color_map <- setNames(colors_i, cell_types)
     
     # Add  points with different symbols and colors for each cell type
     for (i in 1:nrow(points_tab)) {
@@ -155,15 +156,15 @@ plot_boxplot <- function(indata = datasets_data,
              col = celltype_color_map[points_tab$celltype[i]])
       
     }
+    
+    
+  # Add a smaller legend
+  legend("right", legend = cell_types, pch = symbols_i, col = colors_i, title = groups, cex = 0.7)
+
+    
   } else {
     cell_types <- unique(indata$celltype)
   }
-  
-
-
-  # Add a smaller legend
-  legend("right", legend = cell_types, pch = symbols, col = colors, title = groups, cex = 0.7)
-  
 }
 
 #plot scatter
@@ -275,6 +276,26 @@ if (!dir.exists(argv$outdir)){
   dir.create(argv$outdir, showWarnings = TRUE, recursive = TRUE)
 }
 
+# argv$indir <- "./data/all_runs"
+# argv$outdir <- "./data/results/"
+
+#save all data
+alldata <- gather_runs(indir = argv$indir,
+                       prefix = "run_",
+                       runs=c(1,180))
+write.csv(alldata, file = paste0(argv$outdir, "allruns.csv"))
+
+# Create the new dataframe
+new_df <- alldata %>%
+  select(celltype, run, rmsd) %>%        # Select the relevant columns
+  spread(key = run, value = rmsd)        # Reshape data: spread 'run' as columns, 'rmsd' as values
+
+# Set the row names as cell types
+rownames(new_df) <- new_df$celltype
+# Drop the celltype column since it's now row names
+new_df <- new_df %>% select(-celltype)
+# View the new dataframe
+print(new_df)
 
 #experiments:
 #t1-50 insize test
@@ -283,7 +304,7 @@ if (!dir.exists(argv$outdir)){
 insize_data <- gather_runs(indir = argv$indir,
                            prefix = "run_",
                            runs=c(1,50))
-insize_annot_tags <- c(rep(100, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
+insize_annot_tags <- c(rep(7200, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
                        rep(500, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
                        rep(1000, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
                        rep(2500, length(insize_data$run[insize_data$run == unique(insize_data$run)[1]])*10),
@@ -301,15 +322,15 @@ mean_tab <- plot_scatter_insize(indata = insize_data,
 rmsd_plot <- ggplot(mean_tab, aes(x = n_cells, y = rmsd, color = method)) +
   geom_line() +            # Line plot
   geom_point() +           # Add points
+  xlim(0, max(mean_tab$n_cells)) +
   geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
-                width = 0.05, 
-                color = "black", 
+                width = 0.2, 
                 size = 0.8) +
   labs(title = "Multiple Groups Line Plot",
        x = "n_cells",
        y = "RMSD",
-       color = "Group")   # Labels and title
-
+       color = "Group") + # Labels and title
+  theme_minimal()
 ggsave(paste0(argv$outdir, "_insize_scatter_rmsd", ".png"),
        plot = rmsd_plot, width = 6, height = 4, dpi = 300)
 
@@ -319,18 +340,18 @@ ggsave(paste0(argv$outdir, "_insize_scatter_rmsd", ".png"),
 jsd_plot <- ggplot(mean_tab, aes(x = n_cells, y = jsd, color = method)) +
   geom_line() +            # Line plot
   geom_point() +           # Add points
+  xlim(0, max(mean_tab$n_cells)) +
   geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
-                width = 0.05, 
-                color = "black", 
+                width = 0.2, 
                 size = 0.8) +
   labs(title = "Multiple Groups Line Plot",
        x = "n_cells",
        y = "JSD",
-       color = "Group")    # Labels and title
+       color = "Group") +  # Labels and title
+  theme_minimal()
 
 ggsave(paste0(argv$outdir, "_insize_scatter_jsd", ".png"),
        plot = jsd_plot, width = 6, height = 4, dpi = 300)
-
 
 
 
@@ -380,6 +401,10 @@ for(dataset_type in unique(dataset_annot_tags)){
   datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
   dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$method, method="bh", kw = TRUE,
                                             label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  my_list <- dunn.test(datasets_data$rmsd, datasets_data$method, method="bh", kw = TRUE,
+                       label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+  writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_rmsd_all.txt"))
+  
   write(x = dunn_methodperdataset,
             file = paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_rmsd.txt"))
 }
@@ -387,6 +412,9 @@ for(dataset_type in unique(dataset_annot_tags)){
   datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
   dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$method, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  my_list <- dunn.test(datasets_data$jsd, datasets_data$method, method="bh", kw = TRUE,
+                       label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+  writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_jsd_all.txt"))
   write(x = dunn_methodperdataset,
         file = paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_jsd.txt"))
 }
@@ -415,16 +443,24 @@ dev.off()
 datasets_data_dataset <- datasets_data
 dunn_perdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$annot, method="bh", kw = TRUE,
                                           label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+my_list <- dunn.test(datasets_data$rmsd, datasets_data$annot, method="bh", kw = TRUE,
+                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+
+writeLines(capture.output(print(my_list)), paste0(argv$outdir, "_dunn_perdataset_rmsd_all.txt"))
 write(x = dunn_perdataset,
           file = paste0(argv$outdir, "_dunn_perdataset_rmsd.txt"))
 
 dunn_perdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$annot, method="bh", kw = TRUE,
                                             label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+my_list <- dunn.test(datasets_data$jsd, datasets_data$annot, method="bh", kw = TRUE,
+                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+writeLines(capture.output(print(my_list)), paste0(argv$outdir, "_dunn_perdataset_jsd_all.txt"))
 write(x = dunn_perdataset,
       file = paste0(argv$outdir, "_dunn_perdataset_jsd.txt"))
 
 
-#plot celltypes 
+#plot celltypes
+try(
 for(method in unique(datasets_data$method)){#NOT WORKING
   print(method)
   pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_", method, ".pdf"))
@@ -438,11 +474,15 @@ for(method in unique(datasets_data$method)){#NOT WORKING
                groups = "none")
   dev.off()
 }
+)
 #kw and dunn per celltypes
 for(dataset_type in unique(datasets_data$method)){
   datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
   dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$celltype, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  my_list <- dunn.test(datasets_data$rmsd, datasets_data$celltype, method="bh", kw = TRUE,
+                       label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+  writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_percelltype_rmsd_all.txt"))
   write(x = dunn_methodperdataset,
         file = paste0(argv$outdir, dataset_type,"_dunn_percelltype_rmsd.txt"))
 }
@@ -450,6 +490,9 @@ for(dataset_type in unique(datasets_data$method)){
   datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
   dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$celltype, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
+  my_list <- dunn.test(datasets_data$jsd, datasets_data$celltype, method="bh", kw = TRUE,
+                       label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
+  writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_percelltype_jsd_all.txt"))
   write(x = dunn_methodperdataset,
         file = paste0(argv$outdir, dataset_type,"_dunn_percelltype_jsd.txt"))
 }
@@ -469,11 +512,13 @@ mintest_density_tags <- c(rep(c(rep(0.05, 135),
                           rep(0.2, 135),
                           rep(0.5, 135),
                           rep(0.8, 135)), 4))
-mintest_data$density <- mintest_density_tags
+# mintest_data$density <- mintest_density_tags
 ##debugstart
 allrunlist <- c(paste0("run_", seq(81,180)))
 notindata <- setdiff(allrunlist, unique(mintest_data$run))
+print(notindata)
 mintest_density_tags <- mintest_density_tags[-c(2106:2132)]
+mintest_data$density <- mintest_density_tags
 
 ##debug end
 
@@ -497,15 +542,17 @@ for(method_select in unique(mintest_data$method)){
   # pdf(paste0(argv$outdir, method_select, "_mintest_scatter_rmsd", ".pdf"))
   rmsd_plot <- ggplot(mean_tab, aes(x = density, y = rmsd, color = select_celltype)) +
     geom_line() +            # Line plot
-    geom_point() +           # Add points
+    geom_point() +       
+    xlim(0, max(mean_tab$density)) +
     geom_errorbar(aes(ymin = mean_tab$rmsd - mean_tab$rmsd_se, ymax = mean_tab$rmsd + mean_tab$rmsd_se), 
                   width = 0.05, 
-                  color = "black", 
                   size = 0.8) +
     labs(title = "Multiple Groups Line Plot",
          x = "Density",
          y = "RMSD",
-         color = "Group")   # Labels and title
+         color = "Group") +
+    theme_minimal()
+    
   
   ggsave(paste0(argv$outdir, method_select, "_mintest_scatter_rmsd", ".png"),
          plot = rmsd_plot, width = 6, height = 4, dpi = 300)
@@ -518,14 +565,15 @@ for(method_select in unique(mintest_data$method)){
   jsd_plot <- ggplot(mean_tab, aes(x = density, y = jsd, color = select_celltype)) +
     geom_line() +            # Line plot
     geom_point() +           # Add points
+    xlim(0, max(mean_tab$density)) +
     geom_errorbar(aes(ymin = mean_tab$jsd - mean_tab$jsd_se, ymax = mean_tab$jsd + mean_tab$jsd_se), 
                   width = 0.05, 
-                  color = "black", 
                   size = 0.8) +
     labs(title = "Multiple Groups Line Plot",
          x = "Density",
          y = "JSD",
-         color = "Group")    # Labels and title
+         color = "Group") +
+    theme_minimal()
   
   ggsave(paste0(argv$outdir, method_select, "_mintest_scatter_jsd", ".png"),
          plot = jsd_plot, width = 6, height = 4, dpi = 300)
