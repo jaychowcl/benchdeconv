@@ -1,6 +1,9 @@
 library(ggplot2)
 library(argparser)
 library(dunn.test)
+library(FSA)         # For Dunn test
+library(ggsignif)    # For adding statistical annotations
+library(dplyr)       # For data manipulation
 
 #gather runs
 gather_runs <- function(indir = "./data/all_runs/",
@@ -100,7 +103,8 @@ plot_boxplot <- function(indata = datasets_data,
                          annot2 = "none",
                          annot2_col = "none",
                          cats = "method",
-                         groups = "celltype"
+                         groups = "celltype",
+                         ggplot_type = "0"
                          ){
   if(annot != "all"){
     indata <- indata[indata[[annot_col]] == annot, ]
@@ -109,62 +113,101 @@ plot_boxplot <- function(indata = datasets_data,
   if(annot2 != "none"){
     indata <- indata[indata[[annot2_col]] == annot2, ]
   }
-  # pdf("testhere.pdf")
-  # Create the horizontal boxplot for the selected plot_metric
-  boxplot(indata[[plot_metric]] ~ indata[[cats]],
-          horizontal = TRUE,
-          xlab = plot_metric,
-          ylab = "",
-          main = paste(toupper(plot_metric), "Values by ", cats),
-          las = 1,
-          outline = FALSE,
-          range = 0)
- # dev.off()
   
-  if(groups != "none"){
-    #prep points
-    points_tab <- data.frame()
-    i=1
-    for(cat_i in unique(indata[[cats]])){
-      for(group in unique(indata[[groups]])){
-        subset_values <- indata[[plot_metric]][indata[[cats]] == cat_i & indata[[groups]] == group]
-        subset_value <- mean(subset_values)
-        stderr <- sd(subset_values) / sqrt(length(subset_values))
+  if(ggplot_type == "0"){
+    # pdf("testhere.pdf")
+    # Create the horizontal boxplot for the selected plot_metric
+    boxplot(indata[[plot_metric]] ~ indata[[cats]],
+            horizontal = TRUE,
+            xlab = plot_metric,
+            ylab = "",
+            main = paste(toupper(plot_metric), "Values by ", cats),
+            las = 1,
+            outline = FALSE,
+            range = 0,
+            ylim = c(0, max(indata[[plot_metric]])))
+   # dev.off()
+    
+    if(groups != "none"){
+      #prep points
+      points_tab <- data.frame()
+      i=1
+      for(cat_i in unique(indata[[cats]])){
+        for(group in unique(indata[[groups]])){
+          subset_values <- indata[[plot_metric]][indata[[cats]] == cat_i & indata[[groups]] == group]
+          subset_value <- mean(subset_values)
+          stderr <- sd(subset_values) / sqrt(length(subset_values))
+          
+          subset_table <- data.frame(method = cat_i,
+                                     celltype = group,
+                                     metric = subset_value,
+                                     stderr = stderr)
+          
+          points_tab <- rbind(points_tab, subset_table)
+        }
+      }
+      
+      # Define unique cell types and assign symbols and colors
+      cell_types <- unique(points_tab$celltype)
+      symbols_i <- 1:length(cell_types) # Using different point symbols (1 to number of cell types)
+      colors_i <- rainbow(length(cell_types)) # Assign different colors to each cell type
+      
+      # Create a mapping of cell types to symbols and colors
+      celltype_symbol_map <- setNames(symbols_i, cell_types)
+      celltype_color_map <- setNames(colors_i, cell_types)
+      
+      # Add  points with different symbols and colors for each cell type
+      for (i in 1:nrow(points_tab)) {
+        points(points_tab[["metric"]][i], as.numeric(factor(points_tab$method))[i], 
+               pch = celltype_symbol_map[points_tab$celltype[i]], 
+               col = celltype_color_map[points_tab$celltype[i]])
         
-        subset_table <- data.frame(method = cat_i,
-                                   celltype = group,
-                                   metric = subset_value,
-                                   stderr = stderr)
-        
-        points_tab <- rbind(points_tab, subset_table)
+      } 
+      
+    # Add a smaller legend
+    legend("right", legend = cell_types, pch = symbols_i, col = colors_i, title = groups, cex = 0.7)
+  
+      
+    } else {
+      cell_types <- unique(indata$celltype)
+    }
+  } else if(ggplot_type != 0){
+    print("doing ggplot")
+    # Perform Dunn test
+    dunn_results <- dunnTest(indata[[plot_metric]] ~ indata[[cats]], method = "bonferroni")
+    
+    # Extract the significant comparisons
+    significant_comparisons <- dunn_results$res[dunn_results$res$P.adj < 0.05, c("Comparison", "P.adj")]
+    
+    # Create a boxplot with ggplot2 to allow for easy annotation
+    p <- ggplot(indata, aes_string(x = cats, y = plot_metric)) +
+      geom_boxplot(outlier.shape = NA) +
+      coord_flip() +
+      labs(x = "", y = plot_metric, title = paste(toupper(plot_metric), "Values by", cats)) +
+      theme_classic()
+    
+    # Add Dunn test results to the plot
+    if (nrow(significant_comparisons) > 0) {
+      # Prepare the data for annotation
+      comparisons <- strsplit(significant_comparisons$Comparison, " - ")
+      
+      for (i in seq_along(comparisons)) {
+        p <- p + geom_signif(comparisons = list(comparisons[[i]]),
+                             annotations = paste0("p = ", round(significant_comparisons$P.adj[i], 3)),
+                             map_signif_level = FALSE,
+                             y_position = max(indata[[plot_metric]]) * (1 + 0.05 * i))
       }
     }
     
-    # Define unique cell types and assign symbols and colors
-    cell_types <- unique(points_tab$celltype)
-    symbols_i <- 1:length(cell_types) # Using different point symbols (1 to number of cell types)
-    colors_i <- rainbow(length(cell_types)) # Assign different colors to each cell type
+    # Display the plot
+    print(p)
     
-    # Create a mapping of cell types to symbols and colors
-    celltype_symbol_map <- setNames(symbols_i, cell_types)
-    celltype_color_map <- setNames(colors_i, cell_types)
+    # Save the plot
+    ggsave(filename = paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod", method, metric, ".png"), plot = p, width = 12, height = 6)
     
-    # Add  points with different symbols and colors for each cell type
-    for (i in 1:nrow(points_tab)) {
-      points(points_tab[["metric"]][i], as.numeric(factor(points_tab$method))[i], 
-             pch = celltype_symbol_map[points_tab$celltype[i]], 
-             col = celltype_color_map[points_tab$celltype[i]])
-      
+    
     }
-    
-    
-  # Add a smaller legend
-  legend("right", legend = cell_types, pch = symbols_i, col = colors_i, title = groups, cex = 0.7)
-
-    
-  } else {
-    cell_types <- unique(indata$celltype)
-  }
+  
 }
 
 #plot scatter
@@ -259,6 +302,25 @@ plot_scatter_insize <- function(indata = insize_data,
   
 }
 
+#table of jsd and rmsd
+create_pivot_dataframe <- function(data, value_column) {
+  
+  # Create the new dataframe
+  new_df <- data %>%
+    select(celltype, run, !!sym(value_column)) %>%  # Select the relevant columns dynamically
+    spread(key = run, value = !!sym(value_column))  # Reshape data: spread 'run' as columns, dynamic value column
+  
+  # Set the row names as cell types
+  rownames(new_df) <- new_df$celltype
+  
+  # Drop the celltype column since it's now row names
+  new_df <- new_df %>% select(-celltype)
+  
+  # Return the new dataframe
+  return(new_df)
+}
+
+
 
 
 
@@ -285,17 +347,18 @@ alldata <- gather_runs(indir = argv$indir,
                        runs=c(1,180))
 write.csv(alldata, file = paste0(argv$outdir, "allruns.csv"))
 
-# Create the new dataframe
-new_df <- alldata %>%
-  select(celltype, run, rmsd) %>%        # Select the relevant columns
-  spread(key = run, value = rmsd)        # Reshape data: spread 'run' as columns, 'rmsd' as values
+alldata$run <- gsub("run_", "", alldata$run)
+for(method_i in unique(alldata$method)){
+  for (metric in c("rmsd", "jsd")){
+    subdata <- alldata[alldata$method == method_i,]
+    newdata <- create_pivot_dataframe(data = subdata,
+                                      value_column = metric) 
+    newdata <- newdata [, order(as.numeric(names(newdata)))]
+    write.csv(newdata, file = paste0(argv$outdir, "allruns_", method_i, "_", metric,".csv"))
+    
+  }
+}
 
-# Set the row names as cell types
-rownames(new_df) <- new_df$celltype
-# Drop the celltype column since it's now row names
-new_df <- new_df %>% select(-celltype)
-# View the new dataframe
-print(new_df)
 
 #experiments:
 #t1-50 insize test
@@ -399,9 +462,9 @@ for(dataset_type in unique(dataset_annot_tags)){
 #methods per dataset KW and dunn
 for(dataset_type in unique(dataset_annot_tags)){
   datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
-  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$method, method="bh", kw = TRUE,
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$method, method="bh", kw = TRUE,
                                             label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-  my_list <- dunn.test(datasets_data$rmsd, datasets_data$method, method="bh", kw = TRUE,
+  my_list <- dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$method, method="bh", kw = TRUE,
                        label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
   writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_rmsd_all.txt"))
   
@@ -410,9 +473,9 @@ for(dataset_type in unique(dataset_annot_tags)){
 }
 for(dataset_type in unique(dataset_annot_tags)){
   datasets_data_dataset <- datasets_data[datasets_data$annot == dataset_type, ]
-  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$method, method="bh", kw = TRUE,
+  datasets_data_methodperdataset <- capture.output(dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$method, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-  my_list <- dunn.test(datasets_data$jsd, datasets_data$method, method="bh", kw = TRUE,
+  my_list <- dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$method, method="bh", kw = TRUE,
                        label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
   writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_methodsperdataset_jsd_all.txt"))
   write(x = dunn_methodperdataset,
@@ -441,18 +504,18 @@ dev.off()
 
 #kw and dunn tests per dataset
 datasets_data_dataset <- datasets_data
-dunn_perdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$annot, method="bh", kw = TRUE,
+dunn_perdataset <- capture.output(dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$annot, method="bh", kw = TRUE,
                                           label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-my_list <- dunn.test(datasets_data$rmsd, datasets_data$annot, method="bh", kw = TRUE,
+my_list <- dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$annot, method="bh", kw = TRUE,
                      label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
 
 writeLines(capture.output(print(my_list)), paste0(argv$outdir, "_dunn_perdataset_rmsd_all.txt"))
 write(x = dunn_perdataset,
           file = paste0(argv$outdir, "_dunn_perdataset_rmsd.txt"))
 
-dunn_perdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$annot, method="bh", kw = TRUE,
+dunn_perdataset <- capture.output(dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$annot, method="bh", kw = TRUE,
                                             label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-my_list <- dunn.test(datasets_data$jsd, datasets_data$annot, method="bh", kw = TRUE,
+my_list <- dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$annot, method="bh", kw = TRUE,
                      label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
 writeLines(capture.output(print(my_list)), paste0(argv$outdir, "_dunn_perdataset_jsd_all.txt"))
 write(x = dunn_perdataset,
@@ -461,26 +524,29 @@ write(x = dunn_perdataset,
 
 #plot celltypes
 try(
-for(method in unique(datasets_data$method)){#NOT WORKING
-  print(method)
-  pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod_rmsd_", method, ".pdf"))
-  plot_boxplot(indata = datasets_data,
-               plot_metric = "rmsd",
-               annot = "TNBC",
-               annot_col = "annot",
-               annot2 = method,
-               annot2_col = "method",
-               cats = "celltype",
-               groups = "none")
-  dev.off()
+for(metric in c("rmsd", "jsd")){
+  for(method in unique(datasets_data$method)){#NOT WORKING
+    print(method)
+    # pdf(paste0(argv$outdir, "datasets_boxplot_percelltpyepermethod", method, metric, ".pdf"))
+    plot_boxplot(indata = datasets_data,
+                 plot_metric = metric,
+                 annot = "TNBC",
+                 annot_col = "annot",
+                 annot2 = method,
+                 annot2_col = "method",
+                 cats = "celltype",
+                 groups = "none",
+                 ggplot_type = "1")
+    # dev.off()
+  }
 }
 )
 #kw and dunn per celltypes
 for(dataset_type in unique(datasets_data$method)){
   datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
-  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$rmsd, datasets_data$celltype, method="bh", kw = TRUE,
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$celltype, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-  my_list <- dunn.test(datasets_data$rmsd, datasets_data$celltype, method="bh", kw = TRUE,
+  my_list <- dunn.test(datasets_data_dataset$rmsd, datasets_data_dataset$celltype, method="bh", kw = TRUE,
                        label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
   writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_percelltype_rmsd_all.txt"))
   write(x = dunn_methodperdataset,
@@ -488,9 +554,9 @@ for(dataset_type in unique(datasets_data$method)){
 }
 for(dataset_type in unique(datasets_data$method)){
   datasets_data_dataset <- datasets_data[datasets_data$method == dataset_type, ]
-  dunn_methodperdataset <- capture.output(dunn.test(datasets_data$jsd, datasets_data$celltype, method="bh", kw = TRUE,
+  dunn_methodperdataset <- capture.output(dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$celltype, method="bh", kw = TRUE,
                                                     label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05))
-  my_list <- dunn.test(datasets_data$jsd, datasets_data$celltype, method="bh", kw = TRUE,
+  my_list <- dunn.test(datasets_data_dataset$jsd, datasets_data_dataset$celltype, method="bh", kw = TRUE,
                        label = TRUE, wrap = TRUE, table = TRUE, alpha = 0.05)
   writeLines(capture.output(print(my_list)), paste0(argv$outdir, dataset_type,"_dunn_percelltype_jsd_all.txt"))
   write(x = dunn_methodperdataset,
