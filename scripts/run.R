@@ -28,7 +28,7 @@ input_args <- add_argument(input_args, "--outdir", help="Output directory for re
                            type="character",
                            default = "./data/results")
 
-input_args <- add_argument(input_args, "--seed", help="Setting seed for random sampling",
+input_args <- add_argument(input_args, "--seed", help="Setting seed for reproducibility",
                            type = "numeric",
                            default = 1)
 
@@ -52,11 +52,11 @@ input_args <- add_argument(input_args, "--select_celltype", help="select_celltyp
                            type = "character",
                            default = "T-cells")
 
-input_args <- add_argument(input_args, "--n_cells_max", help="max no. of cells per spot in synthspot",
+input_args <- add_argument(input_args, "--n_cells_max", help="Max no. of cells per spot in synthspot",
                            type = "numeric",
                            default = 40)
 
-input_args <- add_argument(input_args, "--min_cell_id_test", help="cell density frequency for control spots used to test minimum cell density for identification (0-1)",
+input_args <- add_argument(input_args, "--min_cell_id_test", help="Cell density frequency for control spots used to test minimum cell density for identification (0-1)",
                            type = "numeric",
                            default = 0)
 
@@ -64,15 +64,15 @@ input_args <- add_argument(input_args, "--select_celltype_min_id", help="Selecte
                            type = "character",
                            default = "T-cells")
 
-input_args <- add_argument(input_args, "--subtype", help="subtype to split on with input scRNA data",
+input_args <- add_argument(input_args, "--subtype", help="Subtype to split on with input scRNA data",
                            type = "character",
                            default = "HER2+")
 
-input_args <- add_argument(input_args, "--coords", help="coordinate files that have been drawn via Loupe Browser v8",
+input_args <- add_argument(input_args, "--coords", help="Coordinate files that have been drawn via Loupe Browser v8",
                            type = "character",
                            default = "./data/spot_coords/out1.csv")
 
-input_args <- add_argument(input_args, "--coords_total", help="reference total coords from Loupe Browser v8",
+input_args <- add_argument(input_args, "--coords_total", help="Reference total coords file from Loupe Browser v8",
                            type = "character",
                            default = "./data/spot_coords/Spatial-Projection.csv")
 
@@ -80,22 +80,22 @@ input_args <- add_argument(input_args, "--coords_total", help="reference total c
 argv <- parse_args(input_args)
 print("Settings:")
 # test settings
-argv <- list()
-argv$scdata <- "data/scRNA_wu"
-argv$scmeta <- "data/scRNA_wu/metadata.csv"
-argv$outdir <- "./data/results/test/run_1"
-argv$seed <- 0
-argv$downsize <- 1000
-argv$grain_lvl <- "celltype_major"
-argv$gene_column <- 1
-argv$synth_dataset <- "artificial_diverse_overlap"
-argv$select_celltype <- "T-cells"
-argv$n_cells_max <- 40
-argv$min_cell_id_test <- 0
-argv$select_celltype_min_id <- "T-cells"
-argv$subtype <- "TNBC"
-argv$coords <- "./data/spot_coords/out1_mintest.csv"
-argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
+# argv <- list()
+# argv$scdata <- "data/scRNA_wu"
+# argv$scmeta <- "data/scRNA_wu/metadata.csv"
+# argv$outdir <- "./data/results/test/run_1"
+# argv$seed <- 0
+# argv$downsize <- 1000
+# argv$grain_lvl <- "celltype_major"
+# argv$gene_column <- 1
+# argv$synth_dataset <- "artificial_diverse_overlap"
+# argv$select_celltype <- "T-cells"
+# argv$n_cells_max <- 40
+# argv$min_cell_id_test <- 0
+# argv$select_celltype_min_id <- "T-cells"
+# argv$subtype <- "TNBC"
+# argv$coords <- "./data/spot_coords/out1_mintest.csv"
+# argv$coords_total <- "./data/spot_coords/Spatial-Projection.csv"
 print(argv)
 
 print("Parsing done.")

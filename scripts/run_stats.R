@@ -174,7 +174,7 @@ plot_boxplot <- function(indata = datasets_data,
   } else if(ggplot_type != 0){
     print("doing ggplot")
     # Perform Dunn test
-    dunn_results <- dunnTest(indata[[plot_metric]] ~ indata[[cats]], method = "bonferroni")
+    dunn_results <- dunnTest(indata[[plot_metric]] ~ indata[[cats]], method = "bh")
     
     # Extract the significant comparisons
     significant_comparisons <- dunn_results$res[dunn_results$res$P.adj < 0.05, c("Comparison", "P.adj")]
@@ -184,7 +184,16 @@ plot_boxplot <- function(indata = datasets_data,
       geom_boxplot(outlier.shape = NA) +
       coord_flip() +
       labs(x = "", y = plot_metric, title = paste(toupper(plot_metric), "Values by", cats)) +
-      theme_classic()
+      theme_classic() +
+      theme(
+        axis.text.x = element_text(size = 16),      # Increase x-axis tick label size
+        axis.text.y = element_text(size = 16),      # Increase y-axis tick label size
+        axis.title.x = element_text(size = 18),     # Increase x-axis title size
+        axis.title.y = element_text(size = 18),     # Increase y-axis title size
+        plot.title = element_text(size = 18, hjust = 0.5)  # Increase title size and center it
+      )
+    
+    
     
     # Add Dunn test results to the plot
     if (nrow(significant_comparisons) > 0) {
