@@ -1,3 +1,4 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # Benchdeconv
 
 A benchmarking pipeline for spatial deconvolution methods. 
@@ -23,14 +24,24 @@ General Overview:
 (Optional): Modify _mintest_ spots to set spot locations of known cell fractions for testing minimum cell density for identification in ./data/spot_coords/out1_mintest.csv
 2. Gather annotated single cell RNAseq data. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations.
 3. Run run.R (see --help for flags) for importing data, generating synthetic datasets, deconvolution, and generating preliminary statistics.
-(Optional): Run run_hpc.sh to run in a high performance computing enviornment for parallelization. Current settigns 
- 
+
+For parallelization:
+1. Use run_hpc.sh to run in a high performance computing enviornment for parallelization. Current settings follow disseratation experiments.
+2. run run_stats.R (see --help for flags) to collect all HPC runs and generate statistics.
+
+Results and statsitcs will be reported in data/results unless specified by --outdir.
+
+### Adding new deconvolution methods
+1. Place deconvolution steps in the run.R ##DECONOVLUTION section
+2. Add deconovlution name into method_names variable in same section
+3. Add deconvolution result output dataframe variable into method_list variable in same section
+
+All proceding steps will now take into account the new deconvolution method. 
 
 
 ### Dependencies
 
-* Describe any prerequisites, libraries, OS version, etc., needed before installing program.
-* ex. Windows 10
+See .yaml and R_installation.R for packages.
 
 ### Installing
 
@@ -40,45 +51,26 @@ General Overview:
 4. Installation done!
 
 
-### Executing program
-
-* How to run the program
-* Step-by-step bullets
-```
-code blocks for commands
-```
-
-## Help
-
-Any advise for common problems or issues.
-```
-command to run if program contains helper info
-```
 
 ## Authors
 
-Contributors names and contact info
-
-ex. Dominique Pizzie  
-ex. [@DomPizzie](https://twitter.com/dompizzie)
+[Jay Chow (Chi Lung)](https://github.com/jaychowcl/benchdeconv/)
+[Dr. Florent Petitprez (Supervisor)](https://edwebprofiles.ed.ac.uk/profile/florent-petitprez)
 
 ## Version History
 
-* 0.2
-    * Various bug fixes and optimizations
-    * See [commit change]() or See [release history]()
 * 0.1
     * Initial Release
 
 ## License
 
-This project is licensed under the [NAME HERE] License - see the LICENSE.md file for details
+This project is licensed under the MIT License
+
 
 ## Acknowledgments
 
-Inspiration, code snippets, etc.
-* [awesome-readme](https://github.com/matiassingers/awesome-readme)
-* [PurpleBooth](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2)
-* [dbader](https://github.com/dbader/readme-template)
-* [zenorocha](https://gist.github.com/zenorocha/4526327)
-* [fvcproductions](https://gist.github.com/fvcproductions/1bfc2d4aecb01a834b46)
+* [Synthspot](https://github.com/saeyslab/synthspot)
+* [Spacedeconv](https://github.com/omnideconv/spacedeconv)
+* [RCTD](https://github.com/dmcable/spacexr)
+* [CARD](https://github.com/YMa-lab/CARD)
+* [SPOTlight](https://github.com/MarcElosua/SPOTlight)
