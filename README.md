@@ -71,7 +71,7 @@ See .yaml and R_installation.R for packages.
 This project is licensed under the MIT License
 
 
-## Acknowledgments
+## References
 
 * [Synthspot](https://github.com/saeyslab/synthspot)
 * [Spacedeconv](https://github.com/omnideconv/spacedeconv)
