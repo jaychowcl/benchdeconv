@@ -20,10 +20,13 @@ General Overview:
 ## Getting Started
 
 1. Install using steps below
+   
 (Optional): Modify 10X genomics spot coordinates in ./data/spot_coords/out1.csv to set spatial transciptomic plate size
+
 (Optional): Modify _mintest_ spots to set spot locations of known cell fractions for testing minimum cell density for identification in ./data/spot_coords/out1_mintest.csv
-2. Gather annotated single cell RNAseq data. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations.
-3. Run run.R (see --help for flags) for importing data, generating synthetic datasets, deconvolution, and generating preliminary statistics.
+
+3. Gather annotated single cell RNAseq data. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations.
+4. Run run.R (see --help for flags) for importing data, generating synthetic datasets, deconvolution, and generating preliminary statistics.
 
 For parallelization:
 1. Use run_hpc.sh to run in a high performance computing enviornment for parallelization. Current settings follow disseratation experiments.
@@ -55,6 +58,7 @@ See .yaml and R_installation.R for packages.
 ## Authors
 
 [Jay Chow (Chi Lung)](https://github.com/jaychowcl/benchdeconv/)
+
 [Dr. Florent Petitprez (Supervisor)](https://edwebprofiles.ed.ac.uk/profile/florent-petitprez)
 
 ## Version History
