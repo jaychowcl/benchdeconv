@@ -1,4 +1,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![Picture1](https://github.com/user-attachments/assets/a8b62e3c-489e-4546-8c48-9d567eeb15fd)
+
 # _benchdeconv_
 
 A benchmarking pipeline for spatial deconvolution methods. 
