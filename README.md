@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-# benchdeconv
+# _benchdeconv_
 
 A benchmarking pipeline for spatial deconvolution methods. 
 
