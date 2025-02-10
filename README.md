@@ -31,7 +31,7 @@ Please see Understanding_the_Immune_Tumour_Microenvironment_by_Integrating_Singl
 4. Run run.R (see --help for flags) for importing data, generating synthetic datasets, deconvolution, and generating preliminary statistics.
 5. Run run_stats.R (see --help for flags) to generate statistics across experiments.
 
-For parallelization:
+### For parallelization
 1. Use run_hpc.sh to run in a high performance computing enviornment for parallelization. Current settings follow disseratation experiments.
 2. run run_stats.R (see --help for flags) to collect all HPC runs and generate statistics.
 
@@ -55,7 +55,6 @@ See .yaml and R_installation.R for packages.
 2. Use benchdeconv.yaml to install dependencies into a conda environment
 3. Run R_installation.R to install additional R packages into the conda environment
 4. Installation done!
-
 
 
 ## Authors
