@@ -28,6 +28,7 @@ General Overview:
 
 3. Gather annotated single cell RNAseq data. Requires count matrix barcodes, genes, counts in a sparse matrix, and metadata of cell annotations.
 4. Run run.R (see --help for flags) for importing data, generating synthetic datasets, deconvolution, and generating preliminary statistics.
+5. Run run_stats.R (see --help for flags) to generate statistics across experiments.
 
 For parallelization:
 1. Use run_hpc.sh to run in a high performance computing enviornment for parallelization. Current settings follow disseratation experiments.
