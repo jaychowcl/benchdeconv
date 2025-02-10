@@ -15,7 +15,8 @@ General Overview:
 1. Pipeline takes annotated single cell RNAseq datasets and each splits sample into two: a)synthetic scRNA dataset (testing dataset) and b)training dataset with each containing the same number of cell types.
 2. The synthic scRNA dataset is used to produce synthetic spatial transcriptomic datasets with known ground truth fractions using Synthspot [(Sangaram et al., 2024)](https://pubmed.ncbi.nlm.nih.gov/38787371/) to produce the testing dataset.
 3. The training dataset is used to train relevent deconvolution methods.
-4. Predicted cell fractions are compared with ground truth fractions via various metrics.
+4. The synthetic spatial transcriptomic datasets are then deconvoluting via the different methods. (RCTD, SPOTlight, CARD are used by default. See below for adding new methods.)
+5. Predicted cell fractions are compared with ground truth fractions via various metrics.
 
 
 ## Getting Started
