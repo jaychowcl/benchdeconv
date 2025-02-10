@@ -12,8 +12,8 @@ to produce a signature matrix or to directy predict cell fractions. Here we prov
 Please see Understanding_the_Immune_Tumour_Microenvironment_by_Integrating_Single-Cell_and_Spatial_Transcriptomics.pdf for full dissertation. 
 
 General Overview:
-1. Pipeline takes annotated single cell RNAseq datasets and each splits sample into two: a)synthetic scRNA dataset and b)training dataset with each containing the same number of cell types.
-2. The synthic scRNA dataset is used to produce synthetic spatial transcriptomic datasets with known ground truth fractions using Synthspot [(Sangaram et al., 2024)](https://pubmed.ncbi.nlm.nih.gov/38787371/).
+1. Pipeline takes annotated single cell RNAseq datasets and each splits sample into two: a)synthetic scRNA dataset (testing dataset) and b)training dataset with each containing the same number of cell types.
+2. The synthic scRNA dataset is used to produce synthetic spatial transcriptomic datasets with known ground truth fractions using Synthspot [(Sangaram et al., 2024)](https://pubmed.ncbi.nlm.nih.gov/38787371/) to produce the testing dataset.
 3. The training dataset is used to train relevent deconvolution methods.
 4. Predicted cell fractions are compared with ground truth fractions via various metrics.
 
