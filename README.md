@@ -59,7 +59,7 @@ See .yaml and R_installation.R for packages.
 
 ## Authors
 
-[Jay Chow (Chi Lung)](https://github.com/jaychowcl/benchdeconv/)
+[Jay Chow (Chi Lung)](https://github.com/jaychowcl)
 
 [Dr. Florent Petitprez (Supervisor)](https://edwebprofiles.ed.ac.uk/profile/florent-petitprez)
 
